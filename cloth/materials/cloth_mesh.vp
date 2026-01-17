@@ -1,0 +1,133 @@
+#version 140
+
+uniform cloth_vp
+{
+    mat4 view_proj;
+    vec4 cloth_time;
+    vec4 cloth_params;    // x=speed, y=amplitude, z=orientation (0=vertical, 1=horizontal), w=edge_influence
+    vec4 cloth_velocity;  // x=vel_x, y=vel_y, z=gust_strength, w=sprite_scale
+    vec4 sprite_size;     // Sprite dimensions (for displacement scaling)
+    vec4 pivot_offset;    // Pivot offset (not used for mesh, but kept for compatibility)
+    vec4 cloth_gravity;   // x=sag_multiplier, y=contract_multiplier (for horizontal flags)
+};
+
+// Mesh provides position and texcoord0 directly
+in vec4 position;
+in vec2 texcoord0;
+
+out vec2 var_texcoord0;
+out vec2 var_localuv;         // Normalized UV (0-1), used for influence calculation
+out float var_cloth_time;
+out vec4 var_cloth_params;
+out float var_gust_strength;
+out vec2 var_cloth_velocity;
+
+void main()
+{
+    // For meshes, texcoord0 IS the local UV (0-1 range)
+    // After mesh generator V-flip: v=1 at top, v=0 at bottom
+    vec2 local_uv = texcoord0;
+
+    // Orientation: 0 = vertical (hung from top), 1 = horizontal (hung from left)
+    float orientation = cloth_params.z;
+
+    // For vertical: "distance from anchor" = 1 - local_uv.y (anchor at top where v=1)
+    // For horizontal: "distance from anchor" = local_uv.x (anchor at left where u=0)
+    // After V-flip: local_uv.y=1 at top, so (1-y) = 0 at top, 1 at bottom
+    float distance_from_anchor = mix(1.0 - local_uv.y, local_uv.x, orientation);
+
+    // For vertical: "cross axis" = local_uv.x (edge influence left/right)
+    // For horizontal: "cross axis" = local_uv.y (edge influence top/bottom)
+    float cross_axis = mix(local_uv.x, local_uv.y, orientation);
+
+    // Distance-based influence - starts immediately from anchor, no threshold
+    // Linear influence means ALL of the cloth can move, not just the bottom portion
+    float distance_factor = distance_from_anchor;
+
+    // Edge influence - stronger sway at edges perpendicular to anchor
+    float edge_factor = abs(cross_axis - 0.5) * 2.0;
+
+    // Combined influence: base distance + edge boost
+    // Edge influence adds up to 50% more movement at edges (cloth_params.w default is 0.2)
+    float influence = distance_factor * (1.0 + edge_factor * cloth_params.w);
+
+    // Add gravity effect for flags - cloth sags when not gusting
+    float gust_strength = cloth_velocity.z;
+    float gravity_sag = 0.0;
+    float gravity_contract = 0.0;  // Horizontal contraction toward anchor
+    if (orientation > 0.5) {
+        // Horizontal flag: collapse downward when gust is low
+        // Apply ease-in-out-circ curve for smooth acceleration/deceleration
+        float t = 1.0 - gust_strength;  // collapse amount (0 = full gust, 1 = rest)
+        // Ease-in-out-circ: smooth on both ends, natural cloth feel
+        float collapse_factor = t < 0.5
+            ? (1.0 - sqrt(1.0 - pow(2.0 * t, 2.0))) / 2.0
+            : (sqrt(1.0 - pow(-2.0 * t + 2.0, 2.0)) + 1.0) / 2.0;
+
+        // Rotation-based droop: vertices rotate around anchor based on distance
+        // cloth_gravity.x = droop_angle (radians, ~1.4 = 80°, 1.57 = 90° straight down)
+        // cloth_gravity.y = droop_curve (power for distance falloff, 1.0 = linear, <1 = faster droop)
+        float max_angle = cloth_gravity.x;
+        float droop_power = cloth_gravity.y;
+
+        // Angle increases with distance from anchor (use power curve for control)
+        float droop_angle = collapse_factor * pow(distance_factor, droop_power) * max_angle;
+
+        // Horizontal offset from anchor (how far this vertex extends)
+        float h_offset = distance_factor * sprite_size.x;
+
+        // Rotate this offset around the anchor:
+        // new_x = h_offset * cos(angle) -> displacement = h_offset * (cos(angle) - 1)
+        // new_y = -h_offset * sin(angle) -> displacement = -h_offset * sin(angle)
+        gravity_contract = h_offset * (cos(droop_angle) - 1.0);
+        gravity_sag = -h_offset * sin(droop_angle);
+    }
+
+    // Time with speed multiplier and world-position offset
+    float world_phase_offset = (position.x - position.y) * 0.00004;
+    float time = cloth_time.x * cloth_params.x + world_phase_offset;
+
+    // Multi-frequency wave for organic motion
+    float wave_phase_pos = mix(position.y, position.x, orientation);
+    float wave_value = sin(time * 6.283 + wave_phase_pos * 0.01) * 0.6
+                     + sin(time * 12.566 + wave_phase_pos * 0.02) * 0.4;
+
+    // Gust-modulated wave amplitude (already have gust_strength from above)
+    float wave_multiplier = 0.25 + gust_strength * 0.75;
+
+    // Scale factor for displacement normalization
+    float sprite_scale = cloth_velocity.w;
+    if (sprite_scale <= 0.0) sprite_scale = 1.0;
+    sprite_scale = min(sprite_scale, 1.0);
+
+    // Velocity-based displacement - increased from 125 to 200 for more dramatic response
+    float vel_amplitude = 200.0;
+    float vel_component = mix(-cloth_velocity.x, -cloth_velocity.y, orientation);
+
+    // Apply displacement perpendicular to anchor axis
+    vec4 displaced_pos = position;
+    float wave_disp = wave_value * cloth_params.y * influence * wave_multiplier * sprite_scale;
+    float vel_disp = vel_component * vel_amplitude * influence * sprite_scale;
+
+    if (orientation < 0.5) {
+        // Vertical cloth: displace horizontally
+        displaced_pos.x += wave_disp + vel_disp;
+    } else {
+        // Horizontal cloth: displace vertically + gravity sag
+        // Also contract horizontally toward anchor as cloth hangs
+        displaced_pos.y += wave_disp + vel_disp + gravity_sag;
+        displaced_pos.x += gravity_contract;
+    }
+
+    // Transform displaced position to clip space
+    vec4 displaced_clip = view_proj * displaced_pos;
+
+    gl_Position = displaced_clip;
+    var_texcoord0 = texcoord0;
+    var_localuv = local_uv;
+
+    var_cloth_time = time;
+    var_cloth_params = cloth_params;
+    var_gust_strength = gust_strength;
+    var_cloth_velocity = vec2(-cloth_velocity.x, -cloth_velocity.y);
+}

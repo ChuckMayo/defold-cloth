@@ -1,35 +1,35 @@
-embedded_components {
-  id: "sprite"
-  type: "sprite"
-  data: "tile_set: \"/example/assets/examples.atlas\"\n"
-  "default_animation: \"flag\"\n"
-  "material: \"/cloth/materials/cloth.material\"\n"
-  "blend_mode: BLEND_MODE_ALPHA\n"
-  ""
-  position {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-  }
-  rotation {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
-}
 components {
   id: "script"
   component: "/example/examples/flag/flag.script"
+}
+embedded_components {
+  id: "pole"
+  type: "sprite"
+  data: "default_animation: \"banner\"\n"
+  "material: \"/builtins/materials/sprite.material\"\n"
+  "textures {\n"
+  "  sampler: \"texture_sampler\"\n"
+  "  texture: \"/example/assets/examples.atlas\"\n"
+  "}\n"
+  ""
   position {
-    x: 0.0
-    y: 0.0
-    z: 0.0
+    x: -200.0
+    y: -201.0
+    z: -0.1
   }
-  rotation {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
+  scale {
+    x: 0.03
+    y: 1.5
   }
+}
+embedded_components {
+  id: "sprite"
+  type: "sprite"
+  data: "default_animation: \"flag\"\n"
+  "material: \"/cloth/materials/cloth.material\"\n"
+  "textures {\n"
+  "  sampler: \"texture_sampler\"\n"
+  "  texture: \"/example/assets/examples.atlas\"\n"
+  "}\n"
+  ""
 }

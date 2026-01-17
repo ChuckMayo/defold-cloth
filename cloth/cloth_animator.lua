@@ -9,13 +9,13 @@ ClothAnimator.DEFAULTS = {
     velocity_scale = 0.02,
     velocity_max = 0.8,
     spring_stiffness = 0.03,
-    spring_damping = 0.93,
+    spring_damping = 0.98,
     input_force = 0.03,
     gust_min_interval = 4.0,
     gust_max_interval = 8.0,
-    gust_fade_in = 1.0,
-    gust_hold = 0.5,
-    gust_fade_out = 2.0,
+    gust_fade_in = 1.5,
+    gust_hold = 2.0,
+    gust_fade_out = 4.0,
     rest_gust_enabled = true,
     active_threshold = 0.15,
     rest_threshold = 0.05,
@@ -23,7 +23,7 @@ ClothAnimator.DEFAULTS = {
     rest_gust_min_intensity = 0.1,
     rest_gust_max_intensity = 1.0,
     rest_gust_vel_scale = 2.0,
-    wave_loop_duration = 3.0,
+    wave_loop_duration = 4.0,
     -- Fragment shader parameters
     frag_wobble_strength = 1.0,
     frag_detection_radius = 3.0,
@@ -31,27 +31,54 @@ ClothAnimator.DEFAULTS = {
     -- Sprite size (should be set per-sprite)
     sprite_width = 256.0,
     sprite_height = 256.0,
-    pivot_offset = 0.5,
+    -- Pivot offset: (0.5, 0.5) for CENTER pivot (Defold default)
+    -- (0.5, 0.0) for TOP-CENTER pivot, (0.0, 0.5) for LEFT-CENTER, etc.
+    pivot_offset_x = 0.5,
+    pivot_offset_y = 0.5,
+    -- Orientation: 0 = vertical (hung from top, like banners/capes)
+    --              1 = horizontal (hung from left, like flags)
+    orientation = 0.0,
+    -- Gravity params for horizontal cloth (flags)
+    -- sag_multiplier: how far cloth sags as factor of width (1.3 = 130% of width)
+    -- contract_multiplier: how much cloth contracts toward anchor (0.9 = 90% of width)
+    sag_multiplier = 1.0,
+    contract_multiplier = 1.0,
 }
 
 ClothAnimator.PRESETS = {
     banner = {
-        spring_stiffness = 0.03,
-        spring_damping = 0.93,
+        spring_stiffness = 0.02,
+        spring_damping = 0.78,
         input_force = 0.03,
     },
     flag = {
-        spring_stiffness = 0.05,
+        spring_stiffness = 0.01,
         spring_damping = 0.90,
         input_force = 0.04,
+        orientation = 1.0,  -- Horizontal: hung from left side
+        --sag_multiplier = 1.6,
+        --contract_multiplier = 0.25,
+        sag_multiplier = 1.7,
+        contract_multiplier = 0.20,
+        rest_gust_enabled = true,
+        gust_min_interval = 0.0,
+        gust_max_interval = 0.0,
+        gust_hold = 4.4,
+        gust_fade_in = 2.9,
+        gust_fade_out = 3.4,
+        frag_wobble_strength = 2.1,
+        frag_detection_radius = 125.0,
+        frag_effect_height = 1.4,
+        wave_loop_duration = 2.2,
     },
     cape = {
-        spring_stiffness = 0.04,
-        spring_damping = 0.88,
-        input_force = 0.05,
-        velocity_max = 1.0,
-        rest_gust_enabled = false,
-        gust_min_interval = 999999,
+        spring_stiffness = 0.01,
+        spring_damping = 0.79,  -- Lower damping = more cloth movement
+        input_force = 0.04,     -- Higher input force = more drag response
+        velocity_max = 0.8,     -- Allow more extreme displacement
+        rest_gust_enabled = true,  -- Enable rest gusts for billowing
+        gust_min_interval = 3.0,
+        gust_max_interval = 5.0,
     },
     curtain = {
         spring_stiffness = 0.02,
@@ -100,7 +127,15 @@ function ClothAnimator.create(sprite_url, config)
     -- Initialize sprite size uniform (with pcall fallback for materials without this uniform)
     local cfg = self._config
     pcall(go.set, sprite_url, 'sprite_size', vmath.vector4(cfg.sprite_width, cfg.sprite_height, 1, 1))
-    pcall(go.set, sprite_url, 'pivot_offset', vmath.vector4(cfg.pivot_offset, 0, 0, 0))
+    pcall(go.set, sprite_url, 'pivot_offset', vmath.vector4(cfg.pivot_offset_x, cfg.pivot_offset_y, 0, 0))
+
+    -- Initialize cloth_params with orientation (z component)
+    -- cloth_params: x=speed, y=amplitude, z=orientation, w=edge_influence
+    pcall(go.set, sprite_url, 'cloth_params.z', cfg.orientation)
+
+    -- Initialize gravity params for horizontal cloth (mesh only)
+    -- cloth_gravity: x=sag_multiplier, y=contract_multiplier
+    pcall(go.set, sprite_url, 'cloth_gravity', vmath.vector4(cfg.sag_multiplier, cfg.contract_multiplier, 0, 0))
 
     -- Initialize fragment shader parameters (with pcall fallback)
     pcall(go.set, sprite_url, 'cloth_frag_params',
@@ -215,13 +250,21 @@ function ClothAnimator:set_frag_params(wobble_strength, detection_radius, effect
         vmath.vector4(self._config.frag_wobble_strength, self._config.frag_detection_radius, self._config.frag_effect_height, 0))
 end
 
-function ClothAnimator:set_sprite_size(width, height, pivot_offset)
+function ClothAnimator:set_sprite_size(width, height, pivot_offset_x, pivot_offset_y)
     if not self._sprite_url then return end
     self._config.sprite_width = width or self._config.sprite_width
     self._config.sprite_height = height or self._config.sprite_height
-    self._config.pivot_offset = pivot_offset or self._config.pivot_offset
+    self._config.pivot_offset_x = pivot_offset_x or self._config.pivot_offset_x
+    self._config.pivot_offset_y = pivot_offset_y or self._config.pivot_offset_y
     pcall(go.set, self._sprite_url, 'sprite_size', vmath.vector4(self._config.sprite_width, self._config.sprite_height, 1, 1))
-    pcall(go.set, self._sprite_url, 'pivot_offset', vmath.vector4(self._config.pivot_offset, 0, 0, 0))
+    pcall(go.set, self._sprite_url, 'pivot_offset', vmath.vector4(self._config.pivot_offset_x, self._config.pivot_offset_y, 0, 0))
+end
+
+function ClothAnimator:set_gravity_params(sag_multiplier, contract_multiplier)
+    if not self._sprite_url then return end
+    self._config.sag_multiplier = sag_multiplier or self._config.sag_multiplier
+    self._config.contract_multiplier = contract_multiplier or self._config.contract_multiplier
+    pcall(go.set, self._sprite_url, 'cloth_gravity', vmath.vector4(self._config.sag_multiplier, self._config.contract_multiplier, 0, 0))
 end
 
 function ClothAnimator:destroy()

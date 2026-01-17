@@ -1,8 +1,14 @@
---- Banner example - stationary banner with cloth animation
+--- Banner example - draggable banner with cloth animation
 local ClothAnimator = require('cloth.cloth_animator')
 
 function init(self)
-    self.cloth = ClothAnimator.create_banner(msg.url('#sprite'))
+    msg.post(".", "acquire_input_focus")
+    self.dragging = false
+    self.drag_offset = vmath.vector3()
+    self.cloth = ClothAnimator.create_banner(msg.url('#sprite'), {
+        sprite_width = 256,
+        sprite_height = 384,
+    })
 end
 
 function final(self)
@@ -14,5 +20,29 @@ end
 function update(self, dt)
     if self.cloth then
         self.cloth:update(dt, go.get_position())
+    end
+end
+
+function on_input(self, action_id, action)
+    if action_id == hash("touch") then
+        local pos = go.get_position()
+        local touch_pos = vmath.vector3(action.x, action.y, 0)
+
+        -- Check if touch is within sprite bounds (256x384, CENTER pivot)
+        local half_width = 128
+        local half_height = 192
+        local in_bounds = touch_pos.x >= pos.x - half_width and touch_pos.x <= pos.x + half_width
+                      and touch_pos.y >= pos.y - half_height and touch_pos.y <= pos.y + half_height
+
+        if action.pressed and in_bounds then
+            self.dragging = true
+            self.drag_offset = pos - touch_pos
+        elseif action.released then
+            self.dragging = false
+        end
+
+        if self.dragging then
+            go.set_position(touch_pos + self.drag_offset)
+        end
     end
 end

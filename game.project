@@ -14,10 +14,10 @@ shared_state = 1
 type = 2D
 
 [bootstrap]
-main_collection = /example/main.collection
+main_collection = /example/main.collectionc
 
 [input]
-game_binding = /input/game.input_binding
+game_binding = /input/game.input_bindingc
 
 [sprite]
 max_count = 256

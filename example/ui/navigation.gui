@@ -1,0 +1,183 @@
+script: "/example/ui/navigation.gui_script"
+fonts {
+  name: "system_font"
+  font: "/builtins/fonts/default.font"
+}
+background_color {
+  x: 0.0
+  y: 0.0
+  z: 0.0
+  w: 0.0
+}
+nodes {
+  position {
+    x: 480.0
+    y: 600.0
+  }
+  size {
+    x: 800.0
+    y: 40.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: "Banner - Basic Sprite Cloth"
+  font: "system_font"
+  id: "title"
+  outline {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  shadow {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 480.0
+    y: 560.0
+  }
+  size {
+    x: 700.0
+    y: 30.0
+  }
+  color {
+    x: 0.8
+    y: 0.8
+    z: 0.8
+  }
+  type: TYPE_TEXT
+  text: "Click and drag to see velocity-responsive cloth physics"
+  font: "system_font"
+  id: "description"
+  outline {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 0.5
+  }
+  shadow {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 0.5
+  }
+  inherit_alpha: true
+  scale {
+    x: 0.8
+    y: 0.8
+  }
+}
+nodes {
+  position {
+    x: 50.0
+    y: 320.0
+  }
+  size {
+    x: 60.0
+    y: 60.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: "<"
+  font: "system_font"
+  id: "btn_left"
+  outline {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  shadow {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  inherit_alpha: true
+  scale {
+    x: 3.0
+    y: 3.0
+  }
+}
+nodes {
+  position {
+    x: 910.0
+    y: 320.0
+  }
+  size {
+    x: 60.0
+    y: 60.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: ">"
+  font: "system_font"
+  id: "btn_right"
+  outline {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  shadow {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  inherit_alpha: true
+  scale {
+    x: 3.0
+    y: 3.0
+  }
+}
+nodes {
+  position {
+    x: 480.0
+    y: 30.0
+  }
+  size {
+    x: 200.0
+    y: 30.0
+  }
+  color {
+    x: 0.6
+    y: 0.6
+    z: 0.6
+  }
+  type: TYPE_TEXT
+  text: "Page 1 / 3"
+  font: "system_font"
+  id: "page_indicator"
+  outline {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 0.5
+  }
+  shadow {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 0.5
+  }
+  inherit_alpha: true
+}

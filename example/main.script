@@ -1,20 +1,35 @@
 --- Main example script
---- Displays instructions for the cloth animation demos
+--- Handles page navigation for cloth animation demos
+
+-- All cloth example object IDs
+local ALL_OBJECTS = {"banner", "flag", "cape", "cape_mesh", "flag_mesh"}
 
 function init(self)
-    -- Print instructions to console
     print("=== Defold Cloth Animation Examples ===")
+    print("Use the < and > arrows to navigate between pages")
     print("")
-    print("BANNER (left):")
-    print("  - Drag the banner to see velocity-responsive cloth physics")
-    print("  - Watch for random wind gusts and rest gusts after dragging")
-    print("")
-    print("FLAG (center):")
-    print("  - Click to toggle auto-wave animation")
-    print("  - Clicking also triggers a manual wind gust")
-    print("")
-    print("CAPE (right):")
-    print("  - Click anywhere to make the cape move to that position")
-    print("  - Watch how the cape trails behind during movement")
-    print("")
+
+    -- Hide all objects initially (they will be shown by the first page message)
+    for _, obj_id in ipairs(ALL_OBJECTS) do
+        local url = msg.url(nil, obj_id, nil)
+        msg.post(url, "disable")
+    end
+end
+
+function on_message(self, message_id, message, sender)
+    if message_id == hash("show_page") then
+        -- Hide all objects first
+        for _, obj_id in ipairs(ALL_OBJECTS) do
+            local url = msg.url(nil, obj_id, nil)
+            msg.post(url, "disable")
+        end
+
+        -- Show only objects for this page
+        for _, obj_id in ipairs(message.objects) do
+            local url = msg.url(nil, obj_id, nil)
+            msg.post(url, "enable")
+        end
+
+        print("Showing page " .. message.page .. ": " .. table.concat(message.objects, ", "))
+    end
 end

@@ -1,0 +1,67 @@
+--- Navigation GUI script
+--- Handles page navigation buttons and displays page info
+
+local PAGES = {
+    {
+        title = "Banner - Basic Sprite Cloth",
+        description = "Click and drag to see velocity-responsive cloth physics with random wind gusts",
+        objects = {"banner"}
+    },
+    {
+        title = "Cape - Sprite & Mesh Comparison",
+        description = "Top: Basic sprite (4 vertices) | Bottom: Mesh grid (48 vertices) for smoother deformation",
+        objects = {"cape", "cape_mesh"}
+    },
+    {
+        title = "Flag - Horizontal Orientation",
+        description = "Sprite and mesh flags hung from left edge. Watch the wave animation and gusts.",
+        objects = {"flag", "flag_mesh"}
+    }
+}
+
+function init(self)
+    msg.post(".", "acquire_input_focus")
+    self.current_page = 1
+    update_page(self)
+end
+
+function update_page(self)
+    local page = PAGES[self.current_page]
+
+    -- Update text
+    gui.set_text(gui.get_node("title"), page.title)
+    gui.set_text(gui.get_node("description"), page.description)
+    gui.set_text(gui.get_node("page_indicator"), "Page " .. self.current_page .. " / " .. #PAGES)
+
+    -- Update arrow visibility
+    local left_alpha = self.current_page > 1 and 1.0 or 0.3
+    local right_alpha = self.current_page < #PAGES and 1.0 or 0.3
+    gui.set_color(gui.get_node("btn_left"), vmath.vector4(1, 1, 1, left_alpha))
+    gui.set_color(gui.get_node("btn_right"), vmath.vector4(1, 1, 1, right_alpha))
+
+    -- Tell main script to show/hide objects
+    msg.post("/main#script", "show_page", { page = self.current_page, objects = page.objects })
+end
+
+function on_input(self, action_id, action)
+    if action_id == hash("touch") and action.pressed then
+        -- Check left button
+        if gui.pick_node(gui.get_node("btn_left"), action.x, action.y) then
+            if self.current_page > 1 then
+                self.current_page = self.current_page - 1
+                update_page(self)
+            end
+            return true
+        end
+
+        -- Check right button
+        if gui.pick_node(gui.get_node("btn_right"), action.x, action.y) then
+            if self.current_page < #PAGES then
+                self.current_page = self.current_page + 1
+                update_page(self)
+            end
+            return true
+        end
+    end
+    return false
+end

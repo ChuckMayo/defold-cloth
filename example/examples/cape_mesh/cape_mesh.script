@@ -1,13 +1,26 @@
---- Cape example - character cape with cloth animation
+--- Cape Mesh example - character cape using mesh for smoother cloth animation
 local ClothAnimator = require('cloth.cloth_animator')
+local MeshGenerator = require('cloth.mesh_generator')
+
+-- Configuration
+local CAPE_WIDTH = 256
+local CAPE_HEIGHT = 320
+local GRID_COLS = 6  -- 6 vertices wide = 5 columns of quads
+local GRID_ROWS = 8  -- 8 vertices tall = 7 rows of quads
 
 function init(self)
     msg.post(".", "acquire_input_focus")
     self.dragging = false
     self.drag_offset = vmath.vector3()
-    self.cloth = ClothAnimator.create_cape(msg.url('#sprite'), {
-        sprite_width = 256,
-        sprite_height = 320,
+
+    -- Set up the mesh with a grid of vertices
+    local mesh_url = msg.url('#mesh')
+    MeshGenerator.setup_mesh(mesh_url, GRID_COLS, GRID_ROWS, CAPE_WIDTH, CAPE_HEIGHT)
+
+    -- Create cloth animator for the mesh
+    self.cloth = ClothAnimator.create_cape(mesh_url, {
+        sprite_width = CAPE_WIDTH,
+        sprite_height = CAPE_HEIGHT,
         -- Enable idle animation gusts
         gust_min_interval = 3.0,
         gust_max_interval = 6.0,
@@ -31,9 +44,9 @@ function on_input(self, action_id, action)
         local pos = go.get_position()
         local touch_pos = vmath.vector3(action.x, action.y, 0)
 
-        -- Check if touch is within sprite bounds (256x320, CENTER pivot)
-        local half_width = 128
-        local half_height = 160
+        -- Check if touch is within mesh bounds (256x320, CENTER pivot)
+        local half_width = CAPE_WIDTH / 2
+        local half_height = CAPE_HEIGHT / 2
         local in_bounds = touch_pos.x >= pos.x - half_width and touch_pos.x <= pos.x + half_width
                       and touch_pos.y >= pos.y - half_height and touch_pos.y <= pos.y + half_height
 

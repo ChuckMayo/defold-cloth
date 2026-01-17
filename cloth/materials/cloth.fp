@@ -62,15 +62,35 @@ void main()
     float vel_height_boost = min(vel_magnitude * 3.0, 0.75);  // Up to 0.75 additional height
     height_factor = min(height_factor + vel_height_boost, 1.0);
 
-    // UV distortion wave for side-to-side shimmer (uses local UV so pattern stays fixed during movement)
+    // UV distortion wave for shimmer (uses local UV so pattern stays fixed during movement)
     // All frequencies are multiples of 2π (6.283) so they complete full cycles when time loops 0→1
-    float wobble_x = sin(var_cloth_time * 25.132 + var_localuv.y * 6.283 + 0.5) * 0.4
-                   + sin(var_cloth_time * 12.566 + var_localuv.x * 6.283) * 0.6;
 
-    // Apply UV distortion scaled by edge factor, height, gust strength, and strength parameter
-    float wobble_strength = cloth_frag_params.x / 512.0 * wave_multiplier;  // Convert to UV space
+    // X-axis wobble (side-to-side shimmer) - multiple frequencies for organic motion
+    float wobble_x = sin(var_cloth_time * 25.132 + var_localuv.y * 6.283 + 0.5) * 0.35
+                   + sin(var_cloth_time * 12.566 + var_localuv.x * 6.283) * 0.35
+                   + sin(var_cloth_time * 37.699 + var_localuv.y * 12.566 + var_localuv.x * 3.0) * 0.2
+                   + sin(var_cloth_time * 6.283 + var_localuv.y * 3.0) * 0.1;  // Slow base wave
+
+    // Y-axis wobble (vertical ripple/flutter) - offset phase for organic movement
+    float wobble_y = sin(var_cloth_time * 18.849 + var_localuv.x * 6.283 + 1.57) * 0.4
+                   + sin(var_cloth_time * 31.415 + var_localuv.y * 12.566) * 0.3
+                   + sin(var_cloth_time * 50.265 + var_localuv.x * 18.849) * 0.2
+                   + sin(var_cloth_time * 9.424 + var_localuv.x * 4.0 + 0.8) * 0.1;  // Slow secondary
+
+    // Base wobble strength - MUCH stronger now (was /512, now /128)
+    float wobble_strength = cloth_frag_params.x / 128.0 * wave_multiplier;
+
+    // Apply wobble across entire cloth, not just edges
+    // Edge factor boosts wobble at edges, but there's a base level everywhere
+    float base_wobble = 0.3;  // 30% wobble applies everywhere
+    float wobble_factor = base_wobble + (1.0 - base_wobble) * edge_factor;
+
+    // Height still matters - more wobble toward free end
+    float final_wobble = wobble_strength * wobble_factor * (0.3 + 0.7 * height_factor);
+
     vec2 distorted_uv = var_texcoord0.xy;
-    distorted_uv.x += wobble_x * wobble_strength * edge_factor * height_factor;
+    distorted_uv.x += wobble_x * final_wobble;
+    distorted_uv.y += wobble_y * final_wobble * 0.7;  // Y wobble at 70% of X intensity
 
     frag_color = texture(texture_sampler, distorted_uv);
 

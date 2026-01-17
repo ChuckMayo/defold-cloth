@@ -1,6 +1,6 @@
-name: "cloth"
+name: "cloth_mesh"
 tags: "tile"
-vertex_program: "/cloth/materials/cloth.vp"
+vertex_program: "/cloth/materials/cloth_mesh.vp"
 fragment_program: "/cloth/materials/cloth.fp"
 vertex_constants {
   name: "view_proj"
@@ -18,9 +18,9 @@ vertex_constants {
   type: CONSTANT_TYPE_USER
   value {
     x: 1.0
-    y: 25.0
+    y: 40.0
     z: 0.0
-    w: 0.2
+    w: 0.3
   }
 }
 vertex_constants {
@@ -51,6 +51,14 @@ vertex_constants {
     y: 0.5
   }
 }
+vertex_constants {
+  name: "cloth_gravity"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 1.3
+    y: 0.9
+  }
+}
 fragment_constants {
   name: "cloth_frag_params"
   type: CONSTANT_TYPE_USER
@@ -66,8 +74,4 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_DEFAULT
   filter_mag: FILTER_MODE_MAG_DEFAULT
-}
-attributes {
-  name: "position_local"
-  semantic_type: SEMANTIC_TYPE_POSITION
 }

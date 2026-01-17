@@ -1,0 +1,5 @@
+material: "/cloth/materials/cloth_mesh.material"
+vertices: "/cloth/meshes/placeholder.buffer"
+textures: "/example/assets/flag.png"
+primitive_type: PRIMITIVE_TRIANGLES
+position_stream: "position"

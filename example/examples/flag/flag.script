@@ -2,7 +2,10 @@
 local ClothAnimator = require('cloth.cloth_animator')
 
 function init(self)
-    self.cloth = ClothAnimator.create_flag(msg.url('#sprite'))
+    self.cloth = ClothAnimator.create_flag(msg.url('#sprite'), {
+        sprite_width = 384,
+        sprite_height = 192,
+    })
 end
 
 function final(self)
