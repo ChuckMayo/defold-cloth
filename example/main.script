@@ -1,0 +1,20 @@
+--- Main example script
+--- Displays instructions for the cloth animation demos
+
+function init(self)
+    -- Print instructions to console
+    print("=== Defold Cloth Animation Examples ===")
+    print("")
+    print("BANNER (left):")
+    print("  - Drag the banner to see velocity-responsive cloth physics")
+    print("  - Watch for random wind gusts and rest gusts after dragging")
+    print("")
+    print("FLAG (center):")
+    print("  - Click to toggle auto-wave animation")
+    print("  - Clicking also triggers a manual wind gust")
+    print("")
+    print("CAPE (right):")
+    print("  - Click anywhere to make the cape move to that position")
+    print("  - Watch how the cape trails behind during movement")
+    print("")
+end

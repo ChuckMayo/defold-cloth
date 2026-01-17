@@ -1,0 +1,10 @@
+# Defold build artifacts
+build/
+.internal/
+
+# Editor settings
+.editor_settings
+
+# Claude session data
+.claude/
+**/CLAUDE.md

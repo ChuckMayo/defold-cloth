@@ -1,0 +1,18 @@
+--- Banner example - stationary banner with cloth animation
+local ClothAnimator = require('cloth.cloth_animator')
+
+function init(self)
+    self.cloth = ClothAnimator.create_banner(msg.url('#sprite'))
+end
+
+function final(self)
+    if self.cloth then
+        self.cloth:destroy()
+    end
+end
+
+function update(self, dt)
+    if self.cloth then
+        self.cloth:update(dt, go.get_position())
+    end
+end

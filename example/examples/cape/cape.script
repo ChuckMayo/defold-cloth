@@ -1,0 +1,39 @@
+--- Cape example - character cape with cloth animation
+local ClothAnimator = require('cloth.cloth_animator')
+
+function init(self)
+    msg.post(".", "acquire_input_focus")
+    self.dragging = false
+    self.drag_offset = vmath.vector3()
+    self.cloth = ClothAnimator.create_cape(msg.url('#sprite'))
+end
+
+function final(self)
+    if self.cloth then
+        self.cloth:destroy()
+    end
+end
+
+function update(self, dt)
+    if self.cloth then
+        self.cloth:update(dt, go.get_position())
+    end
+end
+
+function on_input(self, action_id, action)
+    if action_id == hash("touch") then
+        local pos = go.get_position()
+        local touch_pos = vmath.vector3(action.x, action.y, 0)
+
+        if action.pressed then
+            self.dragging = true
+            self.drag_offset = pos - touch_pos
+        elseif action.released then
+            self.dragging = false
+        end
+
+        if self.dragging then
+            go.set_position(touch_pos + self.drag_offset)
+        end
+    end
+end

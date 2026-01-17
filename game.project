@@ -1,0 +1,30 @@
+[project]
+title = defold-cloth
+version = 1.0.0
+
+[display]
+width = 960
+height = 640
+high_dpi = 1
+
+[script]
+shared_state = 1
+
+[physics]
+type = 2D
+
+[bootstrap]
+main_collection = /example/main.collection
+
+[input]
+game_binding = /input/game.input_binding
+
+[sprite]
+max_count = 256
+
+[label]
+max_count = 64
+
+[library]
+include_dirs = cloth
+

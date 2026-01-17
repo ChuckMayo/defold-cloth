@@ -1,0 +1,38 @@
+name: "main"
+instances {
+  id: "banner"
+  prototype: "/example/examples/banner/banner.go"
+  position {
+    x: 200.0
+    y: 400.0
+    z: 0.0
+  }
+}
+instances {
+  id: "flag"
+  prototype: "/example/examples/flag/flag.go"
+  position {
+    x: 500.0
+    y: 500.0
+    z: 0.0
+  }
+}
+instances {
+  id: "cape"
+  prototype: "/example/examples/cape/cape.go"
+  position {
+    x: 750.0
+    y: 350.0
+    z: 0.0
+  }
+}
+instances {
+  id: "main"
+  prototype: "/example/main.go"
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+}
+scale_along_z: 0

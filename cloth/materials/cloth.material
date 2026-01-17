@@ -1,0 +1,72 @@
+name: "cloth"
+tags: "tile"
+vertex_program: "/cloth/materials/cloth.vp"
+fragment_program: "/cloth/materials/cloth.fp"
+vertex_constants {
+  name: "view_proj"
+  type: CONSTANT_TYPE_VIEWPROJ
+}
+vertex_constants {
+  name: "cloth_time"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.0
+  }
+}
+vertex_constants {
+  name: "cloth_params"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 1.0
+    y: 25.0
+    z: 1.0
+    w: 0.2
+  }
+}
+vertex_constants {
+  name: "cloth_velocity"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+}
+vertex_constants {
+  name: "sprite_size"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 256.0
+    y: 256.0
+    z: 1.0
+    w: 1.0
+  }
+}
+vertex_constants {
+  name: "pivot_offset"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.5
+  }
+}
+fragment_constants {
+  name: "cloth_frag_params"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 1.0
+    y: 3.0
+    z: 0.5
+  }
+}
+samplers {
+  name: "texture_sampler"
+  wrap_u: WRAP_MODE_CLAMP_TO_EDGE
+  wrap_v: WRAP_MODE_CLAMP_TO_EDGE
+  filter_min: FILTER_MODE_MIN_DEFAULT
+  filter_mag: FILTER_MODE_MAG_DEFAULT
+}
+attributes {
+  name: "position_local"
+  semantic_type: SEMANTIC_TYPE_POSITION
+}

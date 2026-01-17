@@ -1,0 +1,106 @@
+#version 140
+
+uniform cloth_vp
+{
+    mat4 view_proj;
+    vec4 cloth_time;
+    vec4 cloth_params;    // x=speed, y=amplitude_x, z=unused, w=edge_influence
+    vec4 cloth_velocity;  // x=vel_x, y=vel_y, z=gust_strength, w=sprite_scale
+    vec4 sprite_size;     // Sprite dimensions for local UV calculation
+    vec4 pivot_offset;    // Pivot offset for local UV calculation
+};
+
+// positions are in world-space
+in vec4 position;
+in vec4 position_local;  // Local position within sprite (pixel coords)
+in vec2 texcoord0;
+
+out vec2 var_texcoord0;
+out vec2 var_localuv;         // Normalized sprite-local UV (0-1), independent of atlas
+out float var_cloth_time;
+out vec4 var_cloth_params;
+out float var_gust_strength;
+out vec2 var_cloth_velocity;  // x=horizontal displacement, y=vertical displacement
+
+void main()
+{
+    // Calculate local UV (0-1 range within sprite) from position_local
+    // With pivot at top-center (0.5, 0.0):
+    //   position_local.x ranges from -width/2 to +width/2
+    //   position_local.y goes NEGATIVE downward (0 at top, -height at bottom)
+    vec2 local_uv;
+    local_uv.x = (position_local.x / sprite_size.x) + pivot_offset.x;  // 0 at left, 1 at right
+    local_uv.y = -position_local.y / sprite_size.y;  // Negate: 0 at top, 1 at bottom
+
+    // Height-based influence (more at bottom, like hanging banner)
+    // local_uv.y: 0 at top, 1 at bottom
+    float normalized_height = local_uv.y;
+
+    // Only affect bottom portion: threshold at 0.4 means top 40% is anchored, bottom 60% moves
+    float height_threshold = 0.4;
+    float height_factor = 0.0;
+    if (normalized_height > height_threshold) {
+        height_factor = (normalized_height - height_threshold) / (1.0 - height_threshold);
+        height_factor = height_factor * height_factor;  // Quadratic falloff
+    }
+
+    // Edge influence - stronger sway at left/right edges
+    float edge_factor = abs(local_uv.x - 0.5) * 2.0;  // 0 at center, 1 at edges
+    edge_factor = edge_factor * edge_factor;  // Quadratic for smoother falloff
+
+    // Combined influence with edge multiplier
+    float influence = height_factor * (1.0 + edge_factor * cloth_params.w);
+
+    // Time with speed multiplier and world-position offset for wind wave effect
+    // Offset creates diagonal wind pattern: top-left leads, bottom-right follows
+    float world_phase_offset = (position.x - position.y) * 0.0005;
+    float time = cloth_time.x * cloth_params.x + world_phase_offset;
+
+    // Multi-frequency wave for organic left-right motion
+    // All frequencies are multiples of 2π (6.283) so they complete full cycles when time loops 0→1
+    float wave_x = sin(time * 6.283 + position.y * 0.01) * 0.6
+                 + sin(time * 12.566 + position.y * 0.02) * 0.4;
+
+    // Gust-modulated wave amplitude (0.25 baseline, up to 1.0 during gust)
+    float gust_strength = cloth_velocity.z;
+    float wave_multiplier = 0.25 + gust_strength * 0.75;
+
+    // Scale factor for displacement normalization
+    // Cap at 1.0: smaller sprites scale down, larger sprites stay at baseline (no amplification)
+    float sprite_scale = cloth_velocity.w;
+    if (sprite_scale <= 0.0) sprite_scale = 1.0;  // Fallback for uninitialized
+    sprite_scale = min(sprite_scale, 1.0);  // Cap: large sprites don't exceed baseline
+
+    // Velocity-based displacement (opposite to movement direction)
+    float vel_amplitude = 125.0;
+    float vel_x = -cloth_velocity.x;
+
+    // Apply displacement in world space (scaled for consistent movement at any sprite size)
+    vec4 displaced_pos = position;
+    displaced_pos.x += wave_x * cloth_params.y * influence * wave_multiplier * sprite_scale;
+
+    // Velocity displacement (tracked separately for depth push)
+    float vel_disp = vel_x * vel_amplitude * influence * sprite_scale;
+    displaced_pos.x += vel_disp;
+
+    // Transform both positions to clip space
+    vec4 original_clip = view_proj * position;
+    vec4 displaced_clip = view_proj * displaced_pos;
+
+    // Depth push to prevent clipping:
+    // - Bottom: push forward (toward camera) to avoid background clipping
+    // - Top: push backward (away from camera) to avoid title box clipping
+    float max_vel_mag = abs(vel_x) * vel_amplitude * sprite_scale;  // Velocity magnitude (scaled)
+    float forward_push = abs(vel_disp) * 4.0 * normalized_height;  // Bottom: forward
+    float backward_push = max_vel_mag * 0.3 * (1.0 - normalized_height);  // Top: backward
+    float vel_depth_push = forward_push - backward_push;
+
+    gl_Position = vec4(displaced_clip.xy, original_clip.z - vel_depth_push, original_clip.w);
+    var_texcoord0 = texcoord0;
+    var_localuv = local_uv;  // Pass sprite-local UVs to fragment shader
+
+    var_cloth_time = time;
+    var_cloth_params = cloth_params;
+    var_gust_strength = gust_strength;
+    var_cloth_velocity = vec2(-cloth_velocity.x, -cloth_velocity.y);  // Pass displacement to fragment shader
+}
