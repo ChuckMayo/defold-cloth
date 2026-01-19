@@ -16,7 +16,7 @@ The sprite displays but doesn't move at all.
    The shader needs to know the sprite dimensions to calculate height-based effects.
 
 2. **Verify cloth material is assigned**
-   Make sure your sprite component uses `/cloth/materials/cloth.material`.
+   Make sure your sprite component uses `/cloth/materials/cloth_sprite.material`.
 
 3. **Confirm animator is updating**
    ```lua

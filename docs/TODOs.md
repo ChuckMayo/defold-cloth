@@ -180,7 +180,7 @@ Move things here once they are complete and checked in
 
 **Fixes Applied**:
 - Updated `cloth.vp` to use `pivot_offset.y` in local_uv.y calculation
-- Updated `cloth.material` default pivot_offset to (0.5, 0.5) for CENTER pivot
+- Updated `cloth_sprite.material` default pivot_offset to (0.5, 0.5) for CENTER pivot
 - Updated `cloth_animator.lua` to support `pivot_offset_x` and `pivot_offset_y`
 - Reduced depth push multipliers from (4.0, 0.3) to (0.1, 0.05)
 - Fixed example scripts bounds checking for CENTER pivot

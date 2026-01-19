@@ -3,7 +3,7 @@ embedded_components {
   type: "sprite"
   data: "tile_set: \"/example/assets/examples.atlas\"\n"
   "default_animation: \"cape\"\n"
-  "material: \"/cloth/materials/cloth.material\"\n"
+  "material: \"/cloth/materials/cloth_sprite.material\"\n"
   "blend_mode: BLEND_MODE_ALPHA\n"
   ""
   position {

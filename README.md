@@ -29,7 +29,7 @@ https://github.com/ChuckMayo/defold-cloth/archive/refs/tags/v1.0.0.zip
 ### 2. Choose Your Approach
 
 **Sprite-based** (simpler, 4 vertices):
-- Set sprite **Material** to `/cloth/materials/cloth.material`
+- Set sprite **Material** to `/cloth/materials/cloth_sprite.material`
 
 **Mesh-based** (smoother, customizable vertex count):
 - Use `/cloth/materials/cloth_mesh.material` with a mesh component

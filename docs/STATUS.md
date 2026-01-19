@@ -76,10 +76,10 @@
 
 **Changes**:
 - `cloth.vp`: Added orientation-aware displacement logic using `mix()` to swap axes
-- `cloth.material`: Default `cloth_params.z = 0.0` (vertical)
+- `cloth_sprite.material`: Default `cloth_params.z = 0.0` (vertical)
 - `cloth_animator.lua`: Added `orientation` config option, flag preset uses `orientation = 1.0`
 
 ## Files Modified
 - `/cloth/materials/cloth.vp` - Removed depth push, added orientation support
-- `/cloth/materials/cloth.material` - Set default orientation to 0 (vertical)
+- `/cloth/materials/cloth_sprite.material` - Set default orientation to 0 (vertical)
 - `/cloth/cloth_animator.lua` - Added orientation config, updated flag preset

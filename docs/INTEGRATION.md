@@ -33,7 +33,7 @@ Your sprite should be designed with cloth animation in mind:
 In your game object's sprite component:
 
 1. Click on the **Material** field
-2. Select `/cloth/materials/cloth.material`
+2. Select `/cloth/materials/cloth_sprite.material`
 
 ## Step 3: Set Required Uniforms
 

@@ -26,7 +26,7 @@ embedded_components {
   id: "sprite"
   type: "sprite"
   data: "default_animation: \"flag\"\n"
-  "material: \"/cloth/materials/cloth.material\"\n"
+  "material: \"/cloth/materials/cloth_sprite.material\"\n"
   "textures {\n"
   "  sampler: \"texture_sampler\"\n"
   "  texture: \"/example/assets/examples.atlas\"\n"
