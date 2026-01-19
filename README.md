@@ -1,6 +1,6 @@
 # defold-cloth
 
-A cloth/fabric animation system for [Defold](https://defold.com) game engine. Add realistic wind and movement effects to banners, flags, capes, curtains, and other fabric elements.
+A shader-driven 2D cloth simulation for [Defold](https://defold.com) game engine. Add realistic wind and movement effects to banners, flags, capes, curtains, and other fabric elements without physics overhead.
 
 ![Cloth Animation Demo](https://via.placeholder.com/600x200?text=Demo+GIF+coming+soon)
 
