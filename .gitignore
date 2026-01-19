@@ -5,6 +5,6 @@ build/
 # Editor settings
 .editor_settings
 
-# Claude session data
+# Claude Code / AI assistant data
 .claude/
 **/CLAUDE.md
