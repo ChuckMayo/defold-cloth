@@ -3,6 +3,7 @@
 in vec2 var_uv;
 in float var_time;
 in float var_gust;
+in float var_enabled;
 in vec4 var_billow;
 in vec4 var_noise;
 in vec4 var_params;
@@ -10,6 +11,8 @@ in vec4 var_params;
 out vec4 frag_color;
 
 // Hash function for noise
+const float NOISE_TILE_PERIOD = 8.0;  // Noise tiles every 8 units for seamless looping
+
 vec2 hash22(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
     p3 += dot(p3, p3.yzx + 33.33);
@@ -21,10 +24,16 @@ float valueNoise(vec2 p) {
     vec2 f = fract(p);
     vec2 u = f * f * (3.0 - 2.0 * f);
 
-    float a = dot(hash22(i), f);
-    float b = dot(hash22(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0));
-    float c = dot(hash22(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0));
-    float d = dot(hash22(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0));
+    // Wrap integer coordinates for seamless tiling
+    vec2 i00 = mod(i, NOISE_TILE_PERIOD);
+    vec2 i10 = mod(i + vec2(1.0, 0.0), NOISE_TILE_PERIOD);
+    vec2 i01 = mod(i + vec2(0.0, 1.0), NOISE_TILE_PERIOD);
+    vec2 i11 = mod(i + vec2(1.0, 1.0), NOISE_TILE_PERIOD);
+
+    float a = dot(hash22(i00), f);
+    float b = dot(hash22(i10), f - vec2(1.0, 0.0));
+    float c = dot(hash22(i01), f - vec2(0.0, 1.0));
+    float d = dot(hash22(i11), f - vec2(1.0, 1.0));
 
     return mix(mix(a, b, u.x), mix(c, d, u.x), u.y) + 0.5;
 }
@@ -33,17 +42,20 @@ float fbmNoise(vec2 p, float scroll_speed, float orientation) {
     float value = 0.0;
     float amplitude = 0.5;
 
-    float scroll_primary = sin(scroll_speed * 6.283) * 0.5 + sin(scroll_speed * 12.566) * 0.25;
-    float scroll_secondary = sin(scroll_speed * 6.283 + 1.57) * 0.3 + sin(scroll_speed * 18.849) * 0.15;
+    // Seamless looping: fract() cycles 0-1, multiply by tile period for full loop
+    float scroll_amount = fract(scroll_speed) * NOISE_TILE_PERIOD;
 
+    // Orientation controls scroll direction:
+    // orientation=0 (banner/vertical): scroll up (+Y direction, bottom to top)
+    // orientation=1 (flag/horizontal): scroll left (-X direction, right to left)
     vec2 scroll = mix(
-        vec2(scroll_primary, scroll_secondary * 0.3),
-        vec2(scroll_secondary * 0.3, scroll_primary)
+        vec2(0.0, scroll_amount),    // Banner: scroll +Y (bottom to top)
+        vec2(-scroll_amount, 0.0)    // Flag: scroll -X (right to left)
     , orientation);
 
     value += amplitude * valueNoise(p + scroll);
     p *= 2.0; amplitude *= 0.5;
-    value += amplitude * valueNoise(p + scroll * 1.5);
+    value += amplitude * valueNoise(p + scroll * 2.0);  // 2.0 ensures both octaves loop together
 
     return value;
 }
@@ -62,8 +74,8 @@ void main()
 
     // Stretch UV for rigid rows/columns (same as cloth.fp)
     vec2 noise_uv = var_uv * noise_scale * mix(
-        vec2(1.0, 0.12),   // Vertical cloth: horizontal rows
-        vec2(0.12, 1.0)    // Horizontal cloth: vertical columns
+        vec2(0.12, 1.0),   // Vertical cloth (banner): thin X, full Y -> horizontal rows
+        vec2(1.0, 0.12)    // Horizontal cloth (flag): full X, thin Y -> vertical columns
     , orientation);
 
     // Calculate noise
@@ -104,6 +116,12 @@ void main()
     float border = step(var_uv.x, 0.01) + step(0.99, var_uv.x) +
                    step(var_uv.y, 0.01) + step(0.99, var_uv.y);
     color = mix(color, vec3(0.3, 0.6, 0.5), min(border, 1.0));
+
+    // Grey out when disabled
+    if (var_enabled < 0.5) {
+        float grey = dot(color, vec3(0.299, 0.587, 0.114));
+        color = vec3(grey) * 0.4;
+    }
 
     frag_color = vec4(color, 1.0);
 }

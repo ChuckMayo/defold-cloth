@@ -26,6 +26,18 @@ function init(self)
     self.dragging = false
     self.drag_offset = vmath.vector3()
 
+    -- Toggle state for each effect
+    self.effect_enabled = {
+        wave_xy = true,
+        wave_z = true,
+        wobble = true,
+        noise = true,
+        gust = true,
+    }
+
+    -- Store original values (captured from cloth._config on first disable)
+    self.original_values = {}
+
     -- Set up the mesh with a grid of vertices
     local mesh_url = msg.url('#mesh')
     MeshGenerator.setup_mesh(mesh_url, GRID_COLS, GRID_ROWS, FLAG_WIDTH, FLAG_HEIGHT)
@@ -49,6 +61,16 @@ function final(self)
     end
 end
 
+-- Map panel IDs to effect names for enabled state lookup
+local PANEL_EFFECT_MAP = {
+    ["#debug_wave_xy"] = "wave_xy",
+    ["#debug_wave_z"] = "wave_z",
+    ["#debug_wobble"] = "wobble",
+    ["#debug_noise"] = "noise",
+    ["#debug_gust"] = "gust",
+    ["#debug_influence"] = nil,  -- Always enabled (visualization only)
+}
+
 -- Sync uniforms from flag mesh to all debug panels
 local function sync_debug_uniforms(self)
     local mesh_url = msg.url("#mesh")
@@ -60,17 +82,73 @@ local function sync_debug_uniforms(self)
     local cloth_noise = go.get(mesh_url, "cloth_noise_params")
     local cloth_params = go.get(mesh_url, "cloth_params")
 
-    -- Pack debug_time: x=cloth_time, y=gust_strength
-    local debug_time = vmath.vector4(cloth_time.x, cloth_velocity.z, 0, 0)
-
     -- Sync to each debug panel
     for _, panel_id in ipairs(DEBUG_PANELS) do
         local panel_url = msg.url(panel_id)
+
+        -- Determine enabled state for this panel
+        local effect_name = PANEL_EFFECT_MAP[panel_id]
+        local enabled = 1.0
+        if effect_name and self.effect_enabled[effect_name] == false then
+            enabled = 0.0
+        end
+
+        -- Pack debug_time: x=cloth_time, y=gust_strength, z=enabled (0 or 1)
+        local debug_time = vmath.vector4(cloth_time.x, cloth_velocity.z, enabled, 0)
+
         go.set(panel_url, "debug_time", debug_time)
         go.set(panel_url, "debug_billow", cloth_billow)
         go.set(panel_url, "debug_noise", cloth_noise)
         go.set(panel_url, "debug_params", cloth_params)
     end
+end
+
+-- Toggle a cloth effect on/off
+local function toggle_effect(self, panel_name)
+    local cfg = self.cloth._config  -- Access animator's stored config
+
+    if panel_name == "debug_wave_xy" then
+        self.effect_enabled.wave_xy = not self.effect_enabled.wave_xy
+        local mesh_url = msg.url("#mesh")
+        if self.effect_enabled.wave_xy then
+            go.set(mesh_url, "cloth_params.y", self.original_values.wave_amplitude or 1.0)
+        else
+            self.original_values.wave_amplitude = go.get(mesh_url, "cloth_params.y")
+            go.set(mesh_url, "cloth_params.y", 0)
+        end
+
+    elseif panel_name == "debug_wave_z" then
+        self.effect_enabled.wave_z = not self.effect_enabled.wave_z
+        if self.effect_enabled.wave_z then
+            self.cloth:set_billow_params(self.original_values.billow_amplitude)
+        else
+            self.original_values.billow_amplitude = cfg.billow_amplitude
+            self.cloth:set_billow_params(0)
+        end
+
+    elseif panel_name == "debug_wobble" then
+        self.effect_enabled.wobble = not self.effect_enabled.wobble
+        if self.effect_enabled.wobble then
+            self.cloth:set_frag_params(self.original_values.wobble_strength)
+        else
+            self.original_values.wobble_strength = cfg.frag_wobble_strength
+            self.cloth:set_frag_params(0)
+        end
+
+    elseif panel_name == "debug_noise" then
+        self.effect_enabled.noise = not self.effect_enabled.noise
+        if self.effect_enabled.noise then
+            self.cloth:set_noise_params(self.original_values.noise_intensity)
+        else
+            self.original_values.noise_intensity = cfg.noise_intensity
+            self.cloth:set_noise_params(0)
+        end
+
+    elseif panel_name == "debug_gust" then
+        self.effect_enabled.gust = not self.effect_enabled.gust
+        self.cloth:set_gusts_enabled(self.effect_enabled.gust)
+    end
+    -- debug_influence: no toggle (visualization only)
 end
 
 function update(self, dt)
@@ -80,4 +158,34 @@ function update(self, dt)
 
     -- Sync uniforms to debug panels
     sync_debug_uniforms(self)
+end
+
+function on_input(self, action_id, action)
+    if action_id == hash("touch") and action.pressed then
+        local go_pos = go.get_position()  -- flag_mesh game object position
+        local touch = vmath.vector3(action.x, action.y, 0)
+
+        -- Panel local positions (from flag_mesh.go embedded components)
+        local panels = {
+            {name = "debug_wave_xy", x = 100, y = 150},
+            {name = "debug_wave_z",  x = 200, y = 150},
+            {name = "debug_wobble",  x = 300, y = 150},
+            {name = "debug_noise",   x = 100, y = 60},
+            {name = "debug_gust",    x = 200, y = 60},
+            {name = "debug_influence", x = 300, y = 60},
+        }
+
+        for _, panel in ipairs(panels) do
+            -- Convert local to world position
+            local world_x = go_pos.x + panel.x
+            local world_y = go_pos.y + panel.y
+
+            -- Check bounds (90x70 panel, centered on position)
+            if touch.x >= world_x - 45 and touch.x <= world_x + 45 and
+               touch.y >= world_y - 35 and touch.y <= world_y + 35 then
+                toggle_effect(self, panel.name)
+                break
+            end
+        end
+    end
 end

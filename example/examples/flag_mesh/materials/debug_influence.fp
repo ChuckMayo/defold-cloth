@@ -3,6 +3,7 @@
 in vec2 var_uv;
 in float var_time;
 in float var_gust;
+in float var_enabled;
 in vec4 var_billow;
 in vec4 var_noise;
 in vec4 var_params;

@@ -3,6 +3,7 @@
 in vec2 var_uv;
 in float var_time;
 in float var_gust;
+in float var_enabled;
 in vec4 var_billow;
 in vec4 var_noise;
 in vec4 var_params;
@@ -78,6 +79,12 @@ void main()
     float border = step(var_uv.x, 0.01) + step(0.99, var_uv.x) +
                    step(var_uv.y, 0.01) + step(0.99, var_uv.y);
     color = mix(color, vec3(0.6, 0.5, 0.3), min(border, 1.0));
+
+    // Grey out when disabled
+    if (var_enabled < 0.5) {
+        float grey = dot(color, vec3(0.299, 0.587, 0.114));
+        color = vec3(grey) * 0.4;
+    }
 
     frag_color = vec4(color, 1.0);
 }

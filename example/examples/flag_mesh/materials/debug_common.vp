@@ -3,7 +3,7 @@
 uniform debug_vp
 {
     mat4 view_proj;
-    vec4 debug_time;      // x=cloth_time, y=gust_strength, z=unused, w=unused
+    vec4 debug_time;      // x=cloth_time, y=gust_strength, z=enabled, w=unused
     vec4 debug_billow;    // x=amplitude, y=phase_offset, z=freq_multiplier, w=unused
     vec4 debug_noise;     // x=intensity, y=scroll_speed, z=scale, w=gust_influence
     vec4 debug_params;    // x=speed, y=amplitude, z=orientation, w=edge_influence
@@ -15,6 +15,7 @@ in vec2 texcoord0;
 out vec2 var_uv;
 out float var_time;
 out float var_gust;
+out float var_enabled;
 out vec4 var_billow;
 out vec4 var_noise;
 out vec4 var_params;
@@ -27,6 +28,7 @@ void main()
     // Pass uniforms to fragment shader
     var_time = debug_time.x;
     var_gust = debug_time.y;
+    var_enabled = debug_time.z;
     var_billow = debug_billow;
     var_noise = debug_noise;
     var_params = debug_params;
