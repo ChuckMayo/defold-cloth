@@ -8,3 +8,5 @@ build/
 # Claude Code / AI assistant data
 .claude/
 **/CLAUDE.md
+/.internal
+/build

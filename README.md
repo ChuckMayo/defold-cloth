@@ -1,50 +1,53 @@
 # defold-cloth
 
-A shader-driven 2D cloth simulation for [Defold](https://defold.com) game engine. Add realistic wind and movement effects to banners, flags, capes, curtains, and other fabric elements without physics overhead.
+An experiment in shader-driven 2D cloth simulation for [Defold](https://defold.com).
+
+This project explores how far you can push cloth-like animation using only shaders and simple Lua spring physics—no skeletal animation, no physics engine, no per-vertex CPU simulation. Just math on the GPU.
 
 ![Cloth Animation Demo](https://via.placeholder.com/600x200?text=Demo+GIF+coming+soon)
 
+## Why Shader-Only?
+
+Traditional cloth simulation typically involves:
+- Skeletal rigs with weighted vertices
+- Physics engines calculating forces per-vertex
+- CPU-bound constraint solving
+
+This approach asks: *what if we fake it entirely in the shader?* The vertex shader displaces vertices using sine waves, spring physics values, and time. The fragment shader adds edge shimmer effects. The Lua layer just tracks velocity and schedules wind gusts.
+
+The result won't fool anyone looking for realistic cloth physics, but it's surprisingly effective for 2D game aesthetics—banners, flags, capes—and it's cheap enough to run hundreds of instances.
+
 ## Features
 
-- **Vertex-based cloth sway** - Multi-frequency sine waves create organic movement
-- **Height-based influence** - Anchor point stays fixed, free end moves naturally
-- **Velocity response** - Cloth trails opposite to movement direction with spring physics
-- **Random wind gusts** - Configurable timing and intensity for ambient animation
-- **Rest gusts** - Automatic gust triggered when cloth settles after movement
-- **Edge shimmer** - Fragment-level UV distortion for tassel and fabric edge effects
-- **Mesh support** - Higher vertex count meshes for smoother cloth deformation
-- **Orientation modes** - Vertical (banners, capes) and horizontal (flags)
-- **GLSL 140 compatible** - Works on iOS, macOS, Windows, Linux, Android, and HTML5
+- **Vertex displacement** via multi-frequency sine waves
+- **Velocity response** so cloth trails behind movement
+- **Wind gusts** that fade in and out
+- **Edge shimmer** via fragment shader UV distortion
+- **Sprite and mesh modes** (4 vertices vs custom grid)
+- **Horizontal and vertical** orientation support
+
+## Examples
+
+The project includes interactive demos:
+
+1. **Banner** - Draggable vertical banner showing velocity response
+2. **Flag** - Horizontal flag with wave animation and gravity sag
+3. **Cape** - Movement-responsive cape (sprite vs mesh comparison)
+4. **Stress Test** - Many flags to explore performance limits
 
 ## Quick Start
 
-### 1. Add Dependency
-
 Add to your `game.project` dependencies:
-
 ```
 https://github.com/ChuckMayo/defold-cloth/archive/refs/tags/v1.0.0.zip
 ```
 
-### 2. Choose Your Approach
-
-**Sprite-based** (simpler, 4 vertices):
-- Set sprite **Material** to `/cloth/materials/cloth_sprite.material`
-
-**Mesh-based** (smoother, customizable vertex count):
-- Use `/cloth/materials/cloth_mesh.material` with a mesh component
-- Generate the mesh grid at runtime with `MeshGenerator`
-
-### 3. Create Animator in Script
-
-**Sprite example:**
-
+Basic usage:
 ```lua
 local ClothAnimator = require('cloth.cloth_animator')
 
 function init(self)
-    local sprite_url = msg.url("#sprite")
-    self.cloth = ClothAnimator.create_banner(sprite_url, {
+    self.cloth = ClothAnimator.create_banner(msg.url("#sprite"), {
         sprite_width = 256,
         sprite_height = 384,
     })
@@ -59,152 +62,35 @@ function final(self)
 end
 ```
 
-**Mesh example:**
-
-```lua
-local ClothAnimator = require('cloth.cloth_animator')
-local MeshGenerator = require('cloth.mesh_generator')
-
-function init(self)
-    local mesh_url = msg.url('#mesh')
-
-    -- Create a 10x8 grid mesh (more vertices = smoother deformation)
-    MeshGenerator.setup_mesh(mesh_url, 10, 8, 384, 192)
-
-    self.cloth = ClothAnimator.create_flag(mesh_url, {
-        sprite_width = 384,
-        sprite_height = 192,
-    })
-end
-
-function update(self, dt)
-    self.cloth:update(dt, go.get_position())
-end
-
-function final(self)
-    self.cloth:destroy()
-end
-```
-
-### 4. Using Presets
-
-```lua
--- Vertical banner (top-anchored, gentle sway)
-self.cloth = ClothAnimator.create_banner(sprite_url, config)
-
--- Horizontal flag (side-anchored, dramatic wave)
-self.cloth = ClothAnimator.create_flag(mesh_url, config)
-
--- Character cape (responsive to movement)
-self.cloth = ClothAnimator.create_cape(sprite_url, config)
-
--- Stage curtain (large, slow, dramatic)
-self.cloth = ClothAnimator.create_curtain(sprite_url, config)
-```
-
-## Configuration
-
-### Custom Configuration
-
-```lua
-local cloth = ClothAnimator.create(sprite_url, {
-    -- Sprite dimensions (required for correct animation)
-    sprite_width = 256,
-    sprite_height = 384,
-
-    -- Spring physics
-    spring_stiffness = 0.05,    -- Higher = snappier return to rest
-    spring_damping = 0.90,      -- Higher = more friction
-    input_force = 0.04,         -- Higher = more responsive to movement
-    velocity_max = 1.0,         -- Maximum displacement magnitude
-
-    -- Orientation: 0 = vertical (banners), 1 = horizontal (flags)
-    orientation = 0.0,
-
-    -- Gusts
-    gust_min_interval = 3.0,    -- Minimum seconds between gusts
-    gust_max_interval = 6.0,    -- Maximum seconds between gusts
-    rest_gust_enabled = true,   -- Trigger gust when settling
-
-    -- Fragment shader (edge shimmer)
-    frag_wobble_strength = 1.0,
-    frag_detection_radius = 3.0,
-    frag_effect_height = 0.5,
-})
-```
-
-### Runtime Adjustments
-
-```lua
--- Trigger a manual gust
-cloth:trigger_gust(0.8)  -- intensity 0-1
-
--- Disable random gusts
-cloth:set_gusts_enabled(false)
-
--- Adjust physics
-cloth:set_spring(0.08, 0.88)  -- stiffness, damping
-
--- Update fragment shader parameters
-cloth:set_frag_params(wobble_strength, detection_radius, effect_height)
-
--- Update sprite dimensions (if sprite size changes)
-cloth:set_sprite_size(width, height, pivot_offset_x, pivot_offset_y)
-
--- Adjust gravity params for horizontal cloth
-cloth:set_gravity_params(sag_multiplier, contract_multiplier)
-```
-
-## Examples
-
-Run the included example project to see demos of:
-
-- **Banner** - Draggable vertical banner with velocity response
-- **Flag** - Sprite-based horizontal flag
-- **Flag Mesh** - Mesh-based flag with smoother wave animation
-- **Cape** - Sprite-based cape following movement
-- **Cape Mesh** - Mesh-based cape with more detailed deformation
-
-## Documentation
-
-- [Integration Guide](docs/INTEGRATION.md) - Detailed setup instructions
-- [Parameters Reference](docs/PARAMETERS.md) - Complete parameter documentation
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+See the [docs](docs/) folder for detailed parameter reference.
 
 ## How It Works
 
-### Vertex Shader
-1. Calculates position-based influence (anchor point fixed, free end moves)
-2. Applies multi-frequency sine waves for organic sway
-3. Adds velocity-based displacement (cloth trails opposite to movement)
-4. Modulates effects by gust strength
+**Vertex Shader**: Calculates a height-based influence factor (anchor stays fixed, free end moves). Applies sine waves at multiple frequencies for organic sway, plus velocity-based displacement so cloth trails behind movement.
 
-### Fragment Shader
-1. Detects edges via alpha neighbor sampling
-2. Applies UV distortion to detected edges
-3. Scales effect by position (more wobble at free end)
+**Fragment Shader**: Samples neighboring pixels to detect edges (via alpha), then distorts UVs along detected edges for a shimmering tassel effect.
 
-### Lua Animator
-1. Tracks position changes via spring physics
-2. Schedules random wind gusts
-3. Triggers rest gusts when settling after movement
+**Lua Animator**: Tracks position delta each frame using spring physics. Schedules random wind gusts. Triggers a "rest gust" when cloth settles after movement.
 
-### Mesh Generator
-1. Creates grid buffer with configurable resolution
-2. Sets up position, UV, and normal streams
-3. Assigns buffer to mesh component at runtime
+## Limitations
+
+This is an approximation, not a simulation:
+- Cloth doesn't collide with anything
+- No self-intersection handling
+- Movement is deterministic (same inputs = same output)
+- Won't look right for complex 3D cloth scenarios
+
+It works well for stylized 2D games where "feels like cloth" matters more than physical accuracy.
 
 ## Performance
 
-- **Vertex shader**: Minimal cost per vertex
-- **Fragment shader**: 5 texture samples per pixel for edge detection
-- **Lua overhead**: Simple vector math per frame per animator
+The stress test example spawns many flags to help you find your limits.
 
-For many cloth elements, consider:
-- Using sprite-based approach (4 vertices) for distant/small cloth
-- Reducing mesh grid resolution where detail isn't needed
-- Setting `frag_effect_height` to 0 to disable fragment effects
+The main costs:
+- **Vertex shader**: Cheap per-vertex math
+- **Fragment shader**: 5 texture samples for edge detection (can disable)
+- **Lua**: One spring calculation per animator per frame
 
 ## License
 
-MIT License - free for commercial and personal use.
+MIT - use it however you want.

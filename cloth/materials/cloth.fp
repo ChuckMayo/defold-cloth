@@ -12,9 +12,60 @@ uniform sampler2D texture_sampler;
 uniform cloth_fp
 {
     vec4 cloth_frag_params;  // x=edge_wobble_strength, y=edge_detection_radius, z=effect_start_height (0-1), w=unused
+    vec4 cloth_noise_params;  // x=intensity, y=scroll_speed, z=scale, w=gust_influence
 };
 
 out vec4 frag_color;
+
+// Procedural noise functions for scrolling texture effect
+const float NOISE_TILE_PERIOD = 8.0;  // Noise tiles every 8 units for seamless looping
+
+vec2 hash22(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.xx + p3.yz) * p3.zy);
+}
+
+float valueNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+
+    // Wrap integer coordinates for seamless tiling
+    vec2 i00 = mod(i, NOISE_TILE_PERIOD);
+    vec2 i10 = mod(i + vec2(1.0, 0.0), NOISE_TILE_PERIOD);
+    vec2 i01 = mod(i + vec2(0.0, 1.0), NOISE_TILE_PERIOD);
+    vec2 i11 = mod(i + vec2(1.0, 1.0), NOISE_TILE_PERIOD);
+
+    float a = dot(hash22(i00), f);
+    float b = dot(hash22(i10), f - vec2(1.0, 0.0));
+    float c = dot(hash22(i01), f - vec2(0.0, 1.0));
+    float d = dot(hash22(i11), f - vec2(1.0, 1.0));
+
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y) + 0.5;
+}
+
+float fbmNoise(vec2 p, float scroll_speed, float orientation) {
+    float value = 0.0;
+    float amplitude = 0.5;
+
+    // Seamless looping: fract() cycles 0-1, multiply by tile period for full loop
+    float scroll_amount = fract(scroll_speed) * NOISE_TILE_PERIOD;
+
+    // Orientation controls scroll direction:
+    // orientation=0 (banner/vertical): scroll up (+Y direction, bottom to top)
+    // orientation=1 (flag/horizontal): scroll left (-X direction, right to left)
+    vec2 scroll = mix(
+        vec2(0.0, scroll_amount),    // Banner: scroll +Y (bottom to top)
+        vec2(-scroll_amount, 0.0)    // Flag: scroll -X (right to left)
+    , orientation);
+
+    value += amplitude * valueNoise(p + scroll);
+    p *= 2.0; amplitude *= 0.5;
+    value += amplitude * valueNoise(p + scroll * 2.0);  // 2.0 ensures both octaves loop together
+
+    return value;
+}
 
 void main()
 {
@@ -88,9 +139,39 @@ void main()
     // Height still matters - more wobble toward free end
     float final_wobble = wobble_strength * wobble_factor * (0.3 + 0.7 * height_factor);
 
+    // Scrolling noise effect
+    float noise_intensity = cloth_noise_params.x;
+    float noise_scroll_speed = cloth_noise_params.y;
+    float noise_scale = cloth_noise_params.z;
+    float noise_gust_influence = cloth_noise_params.w;
+
+    float noise_gust_factor = mix(1.0, var_gust_strength, noise_gust_influence);
+    float noise_time = var_cloth_time * noise_scroll_speed;
+    float orientation = var_cloth_params.z;
+
+    // Stretch noise UV to create rigid rows/columns instead of clouds
+    // orientation=0 (vertical cloth/banner): horizontal rows -> compress X, full Y
+    // orientation=1 (horizontal cloth/flag): vertical columns -> full X, compress Y
+    vec2 noise_uv = var_localuv * noise_scale * mix(
+        vec2(0.12, 1.0),   // Vertical cloth (banner): thin X, full Y -> horizontal rows
+        vec2(1.0, 0.12)    // Horizontal cloth (flag): full X, thin Y -> vertical columns
+    , orientation);
+
+    float noise_value = fbmNoise(noise_uv, noise_time, orientation);
+
+    float noise_offset = (noise_value - 0.5) * noise_intensity * noise_gust_factor * height_factor;
+
+    // Apply noise in wave direction only:
+    // orientation=0 (banner): horizontal rows -> displace X
+    // orientation=1 (flag): vertical columns -> displace Y
+    vec2 noise_disp = mix(
+        vec2(noise_offset * 0.015, 0.0),   // Banner: X displacement
+        vec2(0.0, noise_offset * 0.015)    // Flag: Y displacement
+    , orientation);
+
     vec2 distorted_uv = var_texcoord0.xy;
-    distorted_uv.x += wobble_x * final_wobble;
-    distorted_uv.y += wobble_y * final_wobble * 0.7;  // Y wobble at 70% of X intensity
+    distorted_uv.x += wobble_x * final_wobble + noise_disp.x;
+    distorted_uv.y += wobble_y * final_wobble * 0.7 + noise_disp.y;  // Y wobble at 70% of X intensity
 
     frag_color = texture(texture_sampler, distorted_uv);
 

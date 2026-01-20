@@ -1,0 +1,26 @@
+--- Stress test UI - displays FPS with color coding
+function init(self)
+    self.stats_node = gui.get_node("stats")
+end
+
+function on_message(self, message_id, message, sender)
+    if message_id == hash("update_fps") then
+        local fps = message.fps
+        local fps_text = string.format("120 Flags | FPS: %.1f", fps)
+        gui.set_text(self.stats_node, fps_text)
+
+        -- Color code based on FPS
+        local color
+        if fps > 55 then
+            -- Green for good performance
+            color = vmath.vector4(0, 1, 0, 1)
+        elseif fps >= 30 then
+            -- Yellow for acceptable performance
+            color = vmath.vector4(1, 1, 0, 1)
+        else
+            -- Red for poor performance
+            color = vmath.vector4(1, 0, 0, 1)
+        end
+        gui.set_color(self.stats_node, color)
+    end
+end

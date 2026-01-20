@@ -1,0 +1,107 @@
+--- Stress test controller - spawns 120 flags and tracks FPS
+local FLAG_COUNT = 120
+local GRID_COLS = 20
+local GRID_ROWS = 6
+
+-- Layout constants (avoiding nav UI margins)
+local MARGIN_LEFT = 80
+local MARGIN_RIGHT = 80
+local MARGIN_TOP = 120
+local MARGIN_BOTTOM = 80
+local SCREEN_WIDTH = 960
+local SCREEN_HEIGHT = 640
+
+-- Depth range for perspective effect (camera is at Z ~773)
+local Z_BACK = 50     -- Top rows (furthest from camera, appear smaller)
+local Z_FRONT = 500   -- Bottom rows (closest to camera, appear larger)
+
+-- FPS tracking
+local FPS_SAMPLE_COUNT = 30
+
+local function spawn_flags(self)
+    if #self.spawned_flags > 0 then
+        return -- Already spawned
+    end
+
+    -- Calculate grid spacing
+    local usable_width = SCREEN_WIDTH - MARGIN_LEFT - MARGIN_RIGHT
+    local usable_height = SCREEN_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM
+    local spacing_x = usable_width / (GRID_COLS - 1)
+    local spacing_y = usable_height / (GRID_ROWS - 1)
+
+    -- Spawn flags in a grid (top rows further back, bottom rows closer)
+    local factory_url = msg.url('#factory')
+    for row = 0, GRID_ROWS - 1 do
+        for col = 0, GRID_COLS - 1 do
+            local x = MARGIN_LEFT + col * spacing_x
+            local y = MARGIN_BOTTOM + row * spacing_y
+            -- Bottom rows (row 0) get higher Z (closer to camera, appear larger)
+            -- Top rows get lower Z (further from camera, appear smaller)
+            local row_factor = row / (GRID_ROWS - 1)  -- 0 at bottom, 1 at top
+            local row_z = Z_FRONT * (1 - row_factor) + Z_BACK * row_factor
+            -- Add small column offset to prevent Z-fighting within rows
+            local col_offset = col * 0.5
+            local z = row_z + col_offset
+            local pos = vmath.vector3(x, y, z)
+            local id = factory.create(factory_url, pos)
+            table.insert(self.spawned_flags, id)
+        end
+    end
+end
+
+local function delete_flags(self)
+    for _, id in ipairs(self.spawned_flags) do
+        go.delete(id)
+    end
+    self.spawned_flags = {}
+end
+
+function init(self)
+    self.spawned_flags = {}
+    self.fps_samples = {}
+    self.fps_index = 1
+    self.avg_fps = 0
+    self.enabled = false
+
+    -- Initialize FPS samples
+    for i = 1, FPS_SAMPLE_COUNT do
+        self.fps_samples[i] = 60
+    end
+end
+
+function final(self)
+    delete_flags(self)
+end
+
+function on_message(self, message_id, message, sender)
+    if message_id == hash("enable") then
+        self.enabled = true
+        spawn_flags(self)
+    elseif message_id == hash("disable") then
+        self.enabled = false
+        delete_flags(self)
+    end
+end
+
+function update(self, dt)
+    if not self.enabled then
+        return
+    end
+
+    -- Track FPS
+    if dt > 0 then
+        local fps = 1 / dt
+        self.fps_samples[self.fps_index] = fps
+        self.fps_index = (self.fps_index % FPS_SAMPLE_COUNT) + 1
+
+        -- Calculate average
+        local sum = 0
+        for i = 1, FPS_SAMPLE_COUNT do
+            sum = sum + self.fps_samples[i]
+        end
+        self.avg_fps = sum / FPS_SAMPLE_COUNT
+
+        -- Send FPS to UI
+        msg.post('#ui', 'update_fps', { fps = self.avg_fps })
+    end
+end

@@ -2,7 +2,7 @@
 --- Handles page navigation for cloth animation demos
 
 -- All cloth example object IDs
-local ALL_OBJECTS = {"banner", "flag", "cape", "cape_mesh", "flag_mesh"}
+local ALL_OBJECTS = {"banner", "cape", "cape_mesh", "flag_mesh", "stress_test"}
 
 function init(self)
     print("=== Defold Cloth Animation Examples ===")

@@ -43,6 +43,17 @@ ClothAnimator.DEFAULTS = {
     -- contract_multiplier: how much cloth contracts toward anchor (0.9 = 90% of width)
     sag_multiplier = 1.0,
     contract_multiplier = 1.0,
+    -- Wave amplitude multiplier (1.0 = default from material, lower = less wave movement)
+    wave_amplitude = nil,  -- nil means use material default
+    -- Z-axis billowing
+    billow_amplitude = 20.0,
+    billow_phase_offset = 0.23,
+    billow_freq_multiplier = 1.7,
+    -- Noise texture
+    noise_intensity = 26.7,
+    noise_scroll_speed = 0.4,
+    noise_scale = 1.0,
+    noise_gust_influence = 0.8,
 }
 
 ClothAnimator.PRESETS = {
@@ -50,35 +61,44 @@ ClothAnimator.PRESETS = {
         spring_stiffness = 0.02,
         spring_damping = 0.78,
         input_force = 0.03,
+        -- Banner billow/noise: subtle effect
+        billow_amplitude = 6.0,
+        noise_intensity = 0.2,
     },
     flag = {
-        spring_stiffness = 0.01,
-        spring_damping = 0.90,
-        input_force = 0.04,
+        spring_stiffness = 0.006,   -- Softer spring for flowing movement
+        spring_damping = 0.82,      -- Lower damping for more fluid response
+        input_force = 0.035,
         orientation = 1.0,  -- Horizontal: hung from left side
-        --sag_multiplier = 1.6,
-        --contract_multiplier = 0.25,
         sag_multiplier = 1.7,
         contract_multiplier = 0.20,
         rest_gust_enabled = true,
-        gust_min_interval = 0.0,
-        gust_max_interval = 0.0,
-        gust_hold = 4.4,
-        gust_fade_in = 2.9,
-        gust_fade_out = 3.4,
-        frag_wobble_strength = 2.1,
+        gust_min_interval = 0.5,
+        gust_max_interval = 2.0,
+        gust_hold = 5.0,            -- Longer hold for sustained gusts
+        gust_fade_in = 4.0,         -- Slower fade in
+        gust_fade_out = 4.5,        -- Slower fade out
+        frag_wobble_strength = 1.1,
         frag_detection_radius = 125.0,
         frag_effect_height = 1.4,
-        wave_loop_duration = 2.2,
+        wave_loop_duration = 1.8,   -- Slower base wave
+        -- Flag billow/noise: more pronounced for outdoor cloth
+        --billow_amplitude = 48.0,
+        --noise_intensity = 15.4,
+        --noise_scale = 2.0,
     },
     cape = {
-        spring_stiffness = 0.01,
+        spring_stiffness = 0.03,
         spring_damping = 0.79,  -- Lower damping = more cloth movement
-        input_force = 0.04,     -- Higher input force = more drag response
-        velocity_max = 0.8,     -- Allow more extreme displacement
+        input_force = 0.08,     -- Higher input force = more drag response
+        velocity_max = 0.3,     -- Allow more extreme displacement
         rest_gust_enabled = true,  -- Enable rest gusts for billowing
         gust_min_interval = 3.0,
         gust_max_interval = 5.0,
+        -- Cape billow/noise: dramatic but smooth
+        billow_amplitude = 15.0,
+        noise_intensity = 0.25,
+        noise_scale = 3.0,
     },
     curtain = {
         spring_stiffness = 0.02,
@@ -133,6 +153,11 @@ function ClothAnimator.create(sprite_url, config)
     -- cloth_params: x=speed, y=amplitude, z=orientation, w=edge_influence
     pcall(go.set, sprite_url, 'cloth_params.z', cfg.orientation)
 
+    -- Set wave amplitude if specified (overrides material default)
+    if cfg.wave_amplitude then
+        pcall(go.set, sprite_url, 'cloth_params.y', cfg.wave_amplitude)
+    end
+
     -- Initialize gravity params for horizontal cloth (mesh only)
     -- cloth_gravity: x=sag_multiplier, y=contract_multiplier
     pcall(go.set, sprite_url, 'cloth_gravity', vmath.vector4(cfg.sag_multiplier, cfg.contract_multiplier, 0, 0))
@@ -140,6 +165,14 @@ function ClothAnimator.create(sprite_url, config)
     -- Initialize fragment shader parameters (with pcall fallback)
     pcall(go.set, sprite_url, 'cloth_frag_params',
         vmath.vector4(cfg.frag_wobble_strength, cfg.frag_detection_radius, cfg.frag_effect_height, 0))
+
+    -- Initialize Z-axis billowing parameters
+    pcall(go.set, sprite_url, 'cloth_billow',
+        vmath.vector4(cfg.billow_amplitude, cfg.billow_phase_offset, cfg.billow_freq_multiplier, 0))
+
+    -- Initialize noise texture parameters
+    pcall(go.set, sprite_url, 'cloth_noise_params',
+        vmath.vector4(cfg.noise_intensity, cfg.noise_scroll_speed, cfg.noise_scale, cfg.noise_gust_influence))
 
     -- Start cloth_time animation loop
     go.animate(sprite_url, 'cloth_time.x', go.PLAYBACK_LOOP_FORWARD,
@@ -267,6 +300,25 @@ function ClothAnimator:set_gravity_params(sag_multiplier, contract_multiplier)
     pcall(go.set, self._sprite_url, 'cloth_gravity', vmath.vector4(self._config.sag_multiplier, self._config.contract_multiplier, 0, 0))
 end
 
+function ClothAnimator:set_billow_params(amplitude, phase_offset, freq_multiplier)
+    if not self._sprite_url then return end
+    self._config.billow_amplitude = amplitude or self._config.billow_amplitude
+    self._config.billow_phase_offset = phase_offset or self._config.billow_phase_offset
+    self._config.billow_freq_multiplier = freq_multiplier or self._config.billow_freq_multiplier
+    pcall(go.set, self._sprite_url, 'cloth_billow',
+        vmath.vector4(self._config.billow_amplitude, self._config.billow_phase_offset, self._config.billow_freq_multiplier, 0))
+end
+
+function ClothAnimator:set_noise_params(intensity, scroll_speed, scale, gust_influence)
+    if not self._sprite_url then return end
+    self._config.noise_intensity = intensity or self._config.noise_intensity
+    self._config.noise_scroll_speed = scroll_speed or self._config.noise_scroll_speed
+    self._config.noise_scale = scale or self._config.noise_scale
+    self._config.noise_gust_influence = gust_influence or self._config.noise_gust_influence
+    pcall(go.set, self._sprite_url, 'cloth_noise_params',
+        vmath.vector4(self._config.noise_intensity, self._config.noise_scroll_speed, self._config.noise_scale, self._config.noise_gust_influence))
+end
+
 function ClothAnimator:destroy()
     if self._gust_timer then
         timer.cancel(self._gust_timer)
@@ -299,11 +351,11 @@ function ClothAnimator:_trigger_gust(intensity, fade_in)
     fade_in = fade_in or cfg.gust_fade_in
 
     local ok = pcall(go.animate, self._sprite_url, 'cloth_velocity.z', go.PLAYBACK_ONCE_FORWARD,
-        intensity, go.EASING_INSINE, fade_in, 0, function()
+        intensity, go.EASING_OUTSINE, fade_in, 0, function()
             timer.delay(cfg.gust_hold, false, function()
                 if self._sprite_url then
                     local ok2 = pcall(go.animate, self._sprite_url, 'cloth_velocity.z', go.PLAYBACK_ONCE_FORWARD,
-                        0.0, go.EASING_OUTSINE, cfg.gust_fade_out, 0, function()
+                        0.0, go.EASING_INSINE, cfg.gust_fade_out, 0, function()
                             self:_start_gust_timer()
                         end)
                     if not ok2 then

@@ -1,0 +1,53 @@
+--- Stress test individual flag - small flag for performance testing
+local ClothAnimator = require('cloth.cloth_animator')
+local MeshGenerator = require('cloth.mesh_generator')
+
+-- Small flag configuration for stress testing
+local FLAG_WIDTH = 80
+local FLAG_HEIGHT = 50
+local GRID_COLS = 6  -- Reduced vertices for performance
+local GRID_ROWS = 4
+
+-- Helper to get random value in range
+local function rand_range(min, max)
+    return min + math.random() * (max - min)
+end
+
+function init(self)
+    -- Set up the mesh with a grid of vertices
+    local mesh_url = msg.url('#mesh')
+    MeshGenerator.setup_mesh(mesh_url, GRID_COLS, GRID_ROWS, FLAG_WIDTH, FLAG_HEIGHT)
+
+    -- Create cloth animator with randomized parameters for variety
+    self.cloth = ClothAnimator.create_flag(mesh_url, {
+        sprite_width = FLAG_WIDTH,
+        sprite_height = FLAG_HEIGHT,
+        -- Reduced wave amplitude for small flags
+        wave_amplitude = rand_range(12.0, 18.0),
+        -- Randomize wave animation timing
+        wave_loop_duration = rand_range(2.2, 3.8),
+        -- Randomize gust intervals so flags don't sync
+        gust_min_interval = rand_range(1.0, 3.0),
+        gust_max_interval = rand_range(4.0, 8.0),
+        -- Longer, smoother gust transitions
+        gust_fade_in = rand_range(3.5, 5.5),
+        gust_hold = rand_range(4.0, 7.0),
+        gust_fade_out = rand_range(4.0, 6.0),
+        -- Vary wobble strength
+        frag_wobble_strength = rand_range(1.8, 2.8),
+        -- Vary spring for different flag "weights"
+        spring_damping = rand_range(0.78, 0.86),
+    })
+end
+
+function final(self)
+    if self.cloth then
+        self.cloth:destroy()
+    end
+end
+
+function update(self, dt)
+    if self.cloth then
+        self.cloth:update(dt, go.get_position())
+    end
+end

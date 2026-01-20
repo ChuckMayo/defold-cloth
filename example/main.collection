@@ -9,15 +9,6 @@ instances {
   }
 }
 instances {
-  id: "flag"
-  prototype: "/example/examples/flag/flag.go"
-  position {
-    x: 300.0
-    y: 380.0
-    z: 0.2
-  }
-}
-instances {
   id: "cape"
   prototype: "/example/examples/cape/cape.go"
   position {
@@ -39,9 +30,18 @@ instances {
   id: "flag_mesh"
   prototype: "/example/examples/flag_mesh/flag_mesh.go"
   position {
-    x: 660.0
+    x: 489.0
     y: 250.0
     z: 0.3
+  }
+}
+instances {
+  id: "stress_test"
+  prototype: "/example/examples/stress_test/stress_test.go"
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.4
   }
 }
 instances {
