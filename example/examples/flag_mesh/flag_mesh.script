@@ -1,12 +1,25 @@
 --- Flag Mesh example - flag using mesh for smoother cloth animation and dramatic collapse
+--- Includes debug visualization panels showing real-time cloth effect layers
 local ClothAnimator = require('cloth.cloth_animator')
 local MeshGenerator = require('cloth.mesh_generator')
 
 -- Configuration
-local FLAG_WIDTH = 384
-local FLAG_HEIGHT = 192
+local FLAG_WIDTH = 248
+local FLAG_HEIGHT = 130
 local GRID_COLS = 10  -- More columns for horizontal flag movement
 local GRID_ROWS = 5   -- Fewer rows since flag is wider than tall
+
+-- Debug panel configuration
+local DEBUG_PANEL_WIDTH = 90
+local DEBUG_PANEL_HEIGHT = 70
+local DEBUG_PANELS = {
+    "#debug_wave_xy",
+    "#debug_wave_z",
+    "#debug_wobble",
+    "#debug_noise",
+    "#debug_gust",
+    "#debug_influence"
+}
 
 function init(self)
     msg.post(".", "acquire_input_focus")
@@ -22,6 +35,12 @@ function init(self)
         sprite_width = FLAG_WIDTH,
         sprite_height = FLAG_HEIGHT,
     })
+
+    -- Set up debug panel meshes (simple 2x2 quads)
+    for _, panel_id in ipairs(DEBUG_PANELS) do
+        local panel_url = msg.url(panel_id)
+        MeshGenerator.setup_mesh(panel_url, 2, 2, DEBUG_PANEL_WIDTH, DEBUG_PANEL_HEIGHT)
+    end
 end
 
 function final(self)
@@ -30,32 +49,35 @@ function final(self)
     end
 end
 
+-- Sync uniforms from flag mesh to all debug panels
+local function sync_debug_uniforms(self)
+    local mesh_url = msg.url("#mesh")
+
+    -- Read current values from the cloth mesh
+    local cloth_time = go.get(mesh_url, "cloth_time")
+    local cloth_velocity = go.get(mesh_url, "cloth_velocity")
+    local cloth_billow = go.get(mesh_url, "cloth_billow")
+    local cloth_noise = go.get(mesh_url, "cloth_noise_params")
+    local cloth_params = go.get(mesh_url, "cloth_params")
+
+    -- Pack debug_time: x=cloth_time, y=gust_strength
+    local debug_time = vmath.vector4(cloth_time.x, cloth_velocity.z, 0, 0)
+
+    -- Sync to each debug panel
+    for _, panel_id in ipairs(DEBUG_PANELS) do
+        local panel_url = msg.url(panel_id)
+        go.set(panel_url, "debug_time", debug_time)
+        go.set(panel_url, "debug_billow", cloth_billow)
+        go.set(panel_url, "debug_noise", cloth_noise)
+        go.set(panel_url, "debug_params", cloth_params)
+    end
+end
+
 function update(self, dt)
     if self.cloth then
         self.cloth:update(dt, go.get_position())
     end
-end
 
-function on_input(self, action_id, action)
-    if action_id == hash("touch") then
-        local pos = go.get_position()
-        local touch_pos = vmath.vector3(action.x, action.y, 0)
-
-        -- Check if touch is within mesh bounds (384x192, CENTER pivot)
-        local half_width = FLAG_WIDTH / 2
-        local half_height = FLAG_HEIGHT / 2
-        local in_bounds = touch_pos.x >= pos.x - half_width and touch_pos.x <= pos.x + half_width
-                      and touch_pos.y >= pos.y - half_height and touch_pos.y <= pos.y + half_height
-
-        if action.pressed and in_bounds then
-            self.dragging = true
-            self.drag_offset = pos - touch_pos
-        elseif action.released then
-            self.dragging = false
-        end
-
-        if self.dragging then
-            go.set_position(touch_pos + self.drag_offset)
-        end
-    end
+    -- Sync uniforms to debug panels
+    sync_debug_uniforms(self)
 end

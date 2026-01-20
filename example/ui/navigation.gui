@@ -3,12 +3,6 @@ fonts {
   name: "system_font"
   font: "/builtins/fonts/default.font"
 }
-background_color {
-  x: 0.0
-  y: 0.0
-  z: 0.0
-  w: 0.0
-}
 nodes {
   position {
     x: 480.0
@@ -18,33 +12,20 @@ nodes {
     x: 800.0
     y: 40.0
   }
-  color {
-    x: 1.0
-    y: 1.0
-    z: 1.0
-  }
   type: TYPE_TEXT
   text: "Banner - Basic Sprite Cloth"
   font: "system_font"
   id: "title"
-  outline {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
-  shadow {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
   inherit_alpha: true
 }
 nodes {
   position {
     x: 480.0
     y: 560.0
+  }
+  scale {
+    x: 0.8
+    y: 0.8
   }
   size {
     x: 700.0
@@ -59,95 +40,47 @@ nodes {
   text: "Click and drag to see velocity-responsive cloth physics"
   font: "system_font"
   id: "description"
-  outline {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 0.5
-  }
-  shadow {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 0.5
-  }
   inherit_alpha: true
-  scale {
-    x: 0.8
-    y: 0.8
-  }
+  outline_alpha: 0.5
+  shadow_alpha: 0.5
 }
 nodes {
   position {
     x: 50.0
     y: 320.0
   }
+  scale {
+    x: 3.0
+    y: 3.0
+  }
   size {
     x: 60.0
     y: 60.0
-  }
-  color {
-    x: 1.0
-    y: 1.0
-    z: 1.0
   }
   type: TYPE_TEXT
   text: "<"
   font: "system_font"
   id: "btn_left"
-  outline {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
-  shadow {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
   inherit_alpha: true
-  scale {
-    x: 3.0
-    y: 3.0
-  }
 }
 nodes {
   position {
     x: 910.0
     y: 320.0
   }
+  scale {
+    x: 3.0
+    y: 3.0
+  }
   size {
     x: 60.0
     y: 60.0
-  }
-  color {
-    x: 1.0
-    y: 1.0
-    z: 1.0
   }
   type: TYPE_TEXT
   text: ">"
   font: "system_font"
   id: "btn_right"
-  outline {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
-  shadow {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
   inherit_alpha: true
-  scale {
-    x: 3.0
-    y: 3.0
-  }
 }
 nodes {
   position {
@@ -167,17 +100,152 @@ nodes {
   text: "Page 1 / 3"
   font: "system_font"
   id: "page_indicator"
-  outline {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 0.5
+  inherit_alpha: true
+  outline_alpha: 0.5
+  shadow_alpha: 0.5
+}
+nodes {
+  position {
+    x: 589.0
+    y: 442.0
   }
-  shadow {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 0.5
+  scale {
+    x: 0.7
+    y: 0.7
   }
+  size {
+    x: 100.0
+    y: 20.0
+  }
+  color {
+    x: 0.4
+    y: 0.8
+    z: 0.9
+  }
+  type: TYPE_TEXT
+  text: "XY Wave"
+  font: "system_font"
+  id: "label_wave_xy"
   inherit_alpha: true
 }
+nodes {
+  position {
+    x: 689.0
+    y: 442.0
+  }
+  scale {
+    x: 0.7
+    y: 0.7
+  }
+  size {
+    x: 100.0
+    y: 20.0
+  }
+  color {
+    x: 0.5
+    y: 0.6
+    z: 1.0
+  }
+  type: TYPE_TEXT
+  text: "Z Billow"
+  font: "system_font"
+  id: "label_wave_z"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 789.0
+    y: 442.0
+  }
+  scale {
+    x: 0.7
+    y: 0.7
+  }
+  size {
+    x: 100.0
+    y: 20.0
+  }
+  color {
+    x: 1.0
+    y: 0.6
+    z: 0.4
+  }
+  type: TYPE_TEXT
+  text: "Wobble"
+  font: "system_font"
+  id: "label_wobble"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 589.0
+    y: 352.0
+  }
+  scale {
+    x: 0.7
+    y: 0.7
+  }
+  size {
+    x: 100.0
+    y: 20.0
+  }
+  color {
+    x: 0.3
+    y: 0.8
+    z: 0.6
+  }
+  type: TYPE_TEXT
+  text: "Noise"
+  font: "system_font"
+  id: "label_noise"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 689.0
+    y: 352.0
+  }
+  scale {
+    x: 0.7
+    y: 0.7
+  }
+  size {
+    x: 100.0
+    y: 20.0
+  }
+  color {
+    x: 1.0
+    y: 0.7
+    z: 0.3
+  }
+  type: TYPE_TEXT
+  text: "Gust"
+  font: "system_font"
+  id: "label_gust"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 789.0
+    y: 352.0
+  }
+  scale {
+    x: 0.7
+    y: 0.7
+  }
+  size {
+    x: 100.0
+    y: 20.0
+  }
+  color {
+    x: 0.6
+    y: 0.9
+    z: 0.5
+  }
+  type: TYPE_TEXT
+  text: "Influence"
+  font: "system_font"
+  id: "label_influence"
+  inherit_alpha: true
+}
+material: "/builtins/materials/gui.material"
