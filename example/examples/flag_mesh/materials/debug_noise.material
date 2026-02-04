@@ -43,3 +43,20 @@ vertex_constants {
     w: 0.3
   }
 }
+vertex_constants {
+  name: "debug_noise_texture"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.0
+    y: 0.5
+    z: 2.0
+    w: 0.0
+  }
+}
+samplers {
+  name: "noise_texture"
+  wrap_u: WRAP_MODE_REPEAT
+  wrap_v: WRAP_MODE_REPEAT
+  filter_min: FILTER_MODE_MIN_LINEAR
+  filter_mag: FILTER_MODE_MAG_LINEAR
+}

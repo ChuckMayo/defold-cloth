@@ -7,5 +7,20 @@ images {
 images {
   image: "/example/assets/cape.png"
 }
+images {
+  image: "/example/assets/flag_alliance.png"
+}
+images {
+  image: "/example/assets/flag_merica.png"
+}
+images {
+  image: "/example/assets/flag_ncr.png"
+}
+images {
+  image: "/example/assets/flag_tau.png"
+}
+images {
+  image: "/example/assets/flag_unsc.png"
+}
 margin: 2
 extrude_borders: 2

@@ -35,6 +35,9 @@ function init(self)
         gust = true,
     }
 
+    -- Noise mode: false = procedural sine, true = texture
+    self.noise_texture_mode = false
+
     -- Store original values (captured from cloth._config on first disable)
     self.original_values = {}
 
@@ -81,6 +84,7 @@ local function sync_debug_uniforms(self)
     local cloth_billow = go.get(mesh_url, "cloth_billow")
     local cloth_noise = go.get(mesh_url, "cloth_noise_params")
     local cloth_params = go.get(mesh_url, "cloth_params")
+    local cloth_noise_texture = go.get(mesh_url, "cloth_noise_texture")
 
     -- Sync to each debug panel
     for _, panel_id in ipairs(DEBUG_PANELS) do
@@ -100,6 +104,7 @@ local function sync_debug_uniforms(self)
         go.set(panel_url, "debug_billow", cloth_billow)
         go.set(panel_url, "debug_noise", cloth_noise)
         go.set(panel_url, "debug_params", cloth_params)
+        go.set(panel_url, "debug_noise_texture", cloth_noise_texture)
     end
 end
 
@@ -136,12 +141,26 @@ local function toggle_effect(self, panel_name)
         end
 
     elseif panel_name == "debug_noise" then
-        self.effect_enabled.noise = not self.effect_enabled.noise
+        -- Cycle through modes: procedural -> texture -> off -> procedural
         if self.effect_enabled.noise then
-            self.cloth:set_noise_params(self.original_values.noise_intensity)
+            if self.noise_texture_mode then
+                -- Currently texture mode, go to off
+                self.effect_enabled.noise = false
+                self.noise_texture_mode = false
+                self.original_values.noise_intensity = cfg.noise_intensity
+                self.cloth:set_noise_params(0)
+                self.cloth:set_noise_texture_params(0)
+            else
+                -- Currently procedural mode, go to texture mode
+                self.noise_texture_mode = true
+                self.cloth:set_noise_texture_params(1.0)  -- Full texture influence
+            end
         else
-            self.original_values.noise_intensity = cfg.noise_intensity
-            self.cloth:set_noise_params(0)
+            -- Currently off, go to procedural mode
+            self.effect_enabled.noise = true
+            self.noise_texture_mode = false
+            self.cloth:set_noise_params(self.original_values.noise_intensity)
+            self.cloth:set_noise_texture_params(0)  -- Procedural mode
         end
 
     elseif panel_name == "debug_gust" then

@@ -1,7 +1,7 @@
-name: "cloth"
+name: "cloth_sprite"
 tags: "tile"
 vertex_program: "/cloth/materials/cloth.vp"
-fragment_program: "/cloth/materials/cloth.fp"
+fragment_program: "/cloth/materials/cloth_sprite.fp"
 vertex_constants {
   name: "view_proj"
   type: CONSTANT_TYPE_VIEWPROJ

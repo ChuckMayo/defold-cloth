@@ -10,7 +10,11 @@ uniform cloth_vp
     vec4 pivot_offset;    // Pivot offset (not used for mesh, but kept for compatibility)
     vec4 cloth_gravity;   // x=sag_multiplier, y=contract_multiplier (for horizontal flags)
     vec4 cloth_billow;    // x=amplitude, y=phase_offset, z=freq_multiplier, w=reserved
+    vec4 cloth_noise_texture;  // x=influence (0-1), y=scroll_speed, z=scale, w=reserved
 };
+
+// Note: Vertex texture fetch not reliably supported on all hardware
+// Using procedural banded noise instead for vertex displacement
 
 // Mesh provides position and texcoord0 directly
 in vec4 position;
@@ -92,9 +96,9 @@ void main()
     float wave_phase_pos = mix(position.y, position.x, orientation);
     float phase = wave_phase_pos * 0.01;
 
-    // Primary wave + second harmonic
-    float wave_value = sin(time * 6.283 + phase) * 0.6
-                     + sin(time * 12.566 + phase * 1.5) * 0.4;
+    // Procedural sine wave (primary wave + second harmonic)
+    float procedural_wave = sin(time * 6.283 + phase) * 0.6
+                          + sin(time * 12.566 + phase * 1.5) * 0.4;
 
     // Z-axis billowing - phase-shifted for organic 3D motion
     // Frequencies must be integer multiples of 2π (6.283) for seamless looping
@@ -103,8 +107,46 @@ void main()
     float billow_cycles = max(1.0, floor(cloth_billow.z + 0.5));  // Round to nearest integer
 
     float z_phase = phase + billow_phase_offset;
-    float z_wave = sin(time * 6.283 * billow_cycles + z_phase) * 0.7
-                 + sin(time * 6.283 * (billow_cycles + 1.0) + z_phase * 1.3) * 0.3;
+    float procedural_z_wave = sin(time * 6.283 * billow_cycles + z_phase) * 0.7
+                            + sin(time * 6.283 * (billow_cycles + 1.0) + z_phase * 1.3) * 0.3;
+
+    // Banded noise parameters
+    // Using cloth_billow.w for influence since cloth_noise_texture uniform isn't reaching vertex shader
+    // cloth_billow: x=amplitude, y=phase_offset, z=freq_multiplier, w=banded_influence
+    float banded_influence = cloth_billow.w;  // 0 = smooth sine, 1 = banded pattern
+    float banded_scroll_speed = 1.0;  // Hardcoded for now
+    float num_bands = 0.5;  // Large folds like real flag (user requested ~0.2)
+
+    // Create procedural banded noise pattern
+    // Orientation-aware: bands run perpendicular to anchor axis
+    // Banner (orientation=0): horizontal bands, use local_uv.y for band position
+    // Flag (orientation=1): vertical bands, use local_uv.x for band position
+    float band_position = mix(local_uv.y, local_uv.x, orientation);
+
+    // Scroll bands along flow direction (away from anchor)
+    // scroll_speed=1.0 means bands complete one full scroll per time cycle
+    float scroll_phase = cloth_time.x * banded_scroll_speed * 6.283;
+    float scroll_direction = mix(1.0, -1.0, orientation);  // Banner: +Y, Flag: -X (rightward)
+
+    // Calculate band phase: position along cloth * number of bands * 2π
+    // Plus scrolling phase for animation
+    float band_phase_xy = (band_position * num_bands * 6.283) + (scroll_phase * scroll_direction);
+
+    // Multi-frequency banded pattern for organic look
+    // All frequencies are integers so they loop cleanly
+    float banded_xy = sin(band_phase_xy) * 0.5
+                    + sin(band_phase_xy * 2.0 + 1.0) * 0.3
+                    + sin(band_phase_xy * 3.0 + 2.5) * 0.2;
+
+    // Separate Z bands with different phase offset for independent motion
+    float band_phase_z = band_phase_xy + 2.3;  // Offset from XY
+    float banded_z = sin(band_phase_z * 1.3) * 0.5
+                   + sin(band_phase_z * 2.1 + 1.7) * 0.3
+                   + sin(band_phase_z * 3.7 + 0.5) * 0.2;
+
+    // Blend between smooth procedural sine and banded pattern
+    float wave_value = mix(procedural_wave, banded_xy, banded_influence);
+    float z_wave = mix(procedural_z_wave, banded_z, banded_influence);
 
     // Gust-modulated wave amplitude (0.25 baseline, up to 1.0 during gust)
     float wave_multiplier = 0.25 + gust_strength * 0.75;

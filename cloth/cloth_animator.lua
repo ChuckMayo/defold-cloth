@@ -45,15 +45,20 @@ ClothAnimator.DEFAULTS = {
     contract_multiplier = 1.0,
     -- Wave amplitude multiplier (1.0 = default from material, lower = less wave movement)
     wave_amplitude = nil,  -- nil means use material default
-    -- Z-axis billowing
+    -- Z-axis billowing and banded XY wave
     billow_amplitude = 20.0,
     billow_phase_offset = 0.23,
     billow_freq_multiplier = 1.7,
-    -- Noise texture
+    banded_influence = 1.0,  -- 0 = smooth sine XY, 1 = banded pattern XY (uses cloth_billow.w)
+    -- Procedural noise (fragment shader UV distortion)
     noise_intensity = 26.7,
     noise_scroll_speed = 0.4,
     noise_scale = 1.0,
     noise_gust_influence = 0.8,
+    -- Banded noise (vertex displacement XY/Z, fragment UV distortion)
+    noise_tex_influence = 0.5,     -- 0 = smooth sine, 1 = banded pattern
+    noise_tex_scroll_speed = 0.1,  -- Band scroll speed (1.0 = full scroll per time cycle)
+    noise_tex_num_bands = 0.1,     -- Number of bands across cloth (3-6 works well)
 }
 
 ClothAnimator.PRESETS = {
@@ -166,13 +171,17 @@ function ClothAnimator.create(sprite_url, config)
     pcall(go.set, sprite_url, 'cloth_frag_params',
         vmath.vector4(cfg.frag_wobble_strength, cfg.frag_detection_radius, cfg.frag_effect_height, 0))
 
-    -- Initialize Z-axis billowing parameters
+    -- Initialize Z-axis billowing parameters (w = banded XY influence)
     pcall(go.set, sprite_url, 'cloth_billow',
-        vmath.vector4(cfg.billow_amplitude, cfg.billow_phase_offset, cfg.billow_freq_multiplier, 0))
+        vmath.vector4(cfg.billow_amplitude, cfg.billow_phase_offset, cfg.billow_freq_multiplier, cfg.banded_influence))
 
-    -- Initialize noise texture parameters
+    -- Initialize procedural noise parameters
     pcall(go.set, sprite_url, 'cloth_noise_params',
         vmath.vector4(cfg.noise_intensity, cfg.noise_scroll_speed, cfg.noise_scale, cfg.noise_gust_influence))
+
+    -- Initialize banded noise parameters (for vertex displacement and fragment blend)
+    pcall(go.set, sprite_url, 'cloth_noise_texture',
+        vmath.vector4(cfg.noise_tex_influence, cfg.noise_tex_scroll_speed, cfg.noise_tex_num_bands, 0))
 
     -- Start cloth_time animation loop
     go.animate(sprite_url, 'cloth_time.x', go.PLAYBACK_LOOP_FORWARD,
@@ -300,13 +309,21 @@ function ClothAnimator:set_gravity_params(sag_multiplier, contract_multiplier)
     pcall(go.set, self._sprite_url, 'cloth_gravity', vmath.vector4(self._config.sag_multiplier, self._config.contract_multiplier, 0, 0))
 end
 
-function ClothAnimator:set_billow_params(amplitude, phase_offset, freq_multiplier)
+function ClothAnimator:set_billow_params(amplitude, phase_offset, freq_multiplier, banded_influence)
     if not self._sprite_url then return end
     self._config.billow_amplitude = amplitude or self._config.billow_amplitude
     self._config.billow_phase_offset = phase_offset or self._config.billow_phase_offset
     self._config.billow_freq_multiplier = freq_multiplier or self._config.billow_freq_multiplier
+    self._config.banded_influence = banded_influence or self._config.banded_influence
     pcall(go.set, self._sprite_url, 'cloth_billow',
-        vmath.vector4(self._config.billow_amplitude, self._config.billow_phase_offset, self._config.billow_freq_multiplier, 0))
+        vmath.vector4(self._config.billow_amplitude, self._config.billow_phase_offset, self._config.billow_freq_multiplier, self._config.banded_influence))
+end
+
+function ClothAnimator:set_banded_influence(influence)
+    if not self._sprite_url then return end
+    self._config.banded_influence = influence
+    pcall(go.set, self._sprite_url, 'cloth_billow',
+        vmath.vector4(self._config.billow_amplitude, self._config.billow_phase_offset, self._config.billow_freq_multiplier, self._config.banded_influence))
 end
 
 function ClothAnimator:set_noise_params(intensity, scroll_speed, scale, gust_influence)
@@ -317,6 +334,15 @@ function ClothAnimator:set_noise_params(intensity, scroll_speed, scale, gust_inf
     self._config.noise_gust_influence = gust_influence or self._config.noise_gust_influence
     pcall(go.set, self._sprite_url, 'cloth_noise_params',
         vmath.vector4(self._config.noise_intensity, self._config.noise_scroll_speed, self._config.noise_scale, self._config.noise_gust_influence))
+end
+
+function ClothAnimator:set_noise_texture_params(influence, scroll_speed, num_bands)
+    if not self._sprite_url then return end
+    self._config.noise_tex_influence = influence or self._config.noise_tex_influence
+    self._config.noise_tex_scroll_speed = scroll_speed or self._config.noise_tex_scroll_speed
+    self._config.noise_tex_num_bands = num_bands or self._config.noise_tex_num_bands
+    pcall(go.set, self._sprite_url, 'cloth_noise_texture',
+        vmath.vector4(self._config.noise_tex_influence, self._config.noise_tex_scroll_speed, self._config.noise_tex_num_bands, 0))
 end
 
 function ClothAnimator:destroy()

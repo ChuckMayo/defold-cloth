@@ -1,10 +1,12 @@
 embedded_components {
   id: "sprite"
   type: "sprite"
-  data: "tile_set: \"/example/assets/examples.atlas\"\n"
-  "default_animation: \"cape\"\n"
+  data: "default_animation: \"cape\"\n"
   "material: \"/cloth/materials/cloth_sprite.material\"\n"
-  "blend_mode: BLEND_MODE_ALPHA\n"
+  "textures {\n"
+  "  sampler: \"texture_sampler\"\n"
+  "  texture: \"/example/assets/examples.atlas\"\n"
+  "}\n"
   ""
   position {
     x: 0.0

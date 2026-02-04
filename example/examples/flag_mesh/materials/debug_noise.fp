@@ -7,6 +7,9 @@ in float var_enabled;
 in vec4 var_billow;
 in vec4 var_noise;
 in vec4 var_params;
+in vec4 var_noise_texture;
+
+uniform sampler2D noise_texture;
 
 out vec4 frag_color;
 
@@ -62,12 +65,17 @@ float fbmNoise(vec2 p, float scroll_speed, float orientation) {
 
 void main()
 {
-    // Noise parameters
+    // Noise parameters (procedural)
     float noise_intensity = var_noise.x;
     float noise_scroll_speed = var_noise.y;
     float noise_scale = var_noise.z;
     float noise_gust_influence = var_noise.w;
     float orientation = var_params.z;
+
+    // Texture noise parameters
+    float tex_influence = var_noise_texture.x;
+    float tex_scroll_speed = var_noise_texture.y;
+    float tex_scale = var_noise_texture.z;
 
     // Noise time
     float noise_time = var_time * noise_scroll_speed;
@@ -78,8 +86,25 @@ void main()
         vec2(1.0, 0.12)    // Horizontal cloth (flag): full X, thin Y -> vertical columns
     , orientation);
 
-    // Calculate noise
-    float noise_value = fbmNoise(noise_uv, noise_time, orientation);
+    // Calculate procedural noise
+    float procedural_noise = fbmNoise(noise_uv, noise_time, orientation);
+
+    // Calculate texture noise with orientation-aware UVs
+    vec2 tex_noise_uv = mix(
+        var_uv,
+        vec2(var_uv.y, var_uv.x)
+    , orientation) * tex_scale;
+
+    // Scroll texture noise along the "flow" direction (away from anchor)
+    // After UV swap for flag, tex_noise_uv.y maps to screen-X (horizontal position)
+    // Banner: scroll +Y (downward visual), Flag: scroll -Y (rightward visual)
+    float tex_scroll_offset = var_time * tex_scroll_speed;
+    tex_noise_uv.y += mix(tex_scroll_offset, -tex_scroll_offset, orientation);
+
+    float texture_noise_value = texture(noise_texture, tex_noise_uv).r;
+
+    // Blend between procedural and texture noise
+    float noise_value = mix(procedural_noise, texture_noise_value, tex_influence);
 
     // Apply gust influence
     float noise_gust_factor = mix(1.0, var_gust, noise_gust_influence);
@@ -88,9 +113,15 @@ void main()
     // Visualize as colored bands
     vec3 color;
 
-    // Base noise visualization (blue-green gradient)
+    // Base noise visualization - different colors for texture vs procedural
     float normalized = noise_value;
-    color = mix(vec3(0.1, 0.2, 0.4), vec3(0.2, 0.8, 0.6), normalized);
+    if (tex_influence > 0.5) {
+        // Texture mode: purple-orange gradient
+        color = mix(vec3(0.3, 0.1, 0.4), vec3(0.9, 0.6, 0.3), normalized);
+    } else {
+        // Procedural mode: blue-green gradient
+        color = mix(vec3(0.1, 0.2, 0.4), vec3(0.2, 0.8, 0.6), normalized);
+    }
 
     // Add intensity visualization overlay
     float intensity_vis = abs(final_noise) * 0.5;
@@ -107,9 +138,19 @@ void main()
         color += vec3(0.1) * row_line;
     }
 
-    // Label area
+    // Label area with mode indicator
     if (var_uv.y > 0.92) {
         color = vec3(0.15, 0.17, 0.20);
+
+        // Mode indicator in top-right corner
+        if (var_uv.x > 0.75 && var_uv.y > 0.92) {
+            // Show TEX (orange) or SIN (blue) based on influence
+            if (tex_influence > 0.5) {
+                color = vec3(0.9, 0.5, 0.2);  // Orange for texture
+            } else {
+                color = vec3(0.2, 0.5, 0.8);  // Blue for procedural sine
+            }
+        }
     }
 
     // Border

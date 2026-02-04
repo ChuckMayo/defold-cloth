@@ -43,3 +43,13 @@ vertex_constants {
     w: 0.3
   }
 }
+vertex_constants {
+  name: "debug_noise_texture"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.0
+    y: 0.5
+    z: 2.0
+    w: 0.0
+  }
+}

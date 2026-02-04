@@ -3,10 +3,11 @@
 uniform debug_vp
 {
     mat4 view_proj;
-    vec4 debug_time;      // x=cloth_time, y=gust_strength, z=enabled, w=unused
-    vec4 debug_billow;    // x=amplitude, y=phase_offset, z=freq_multiplier, w=unused
-    vec4 debug_noise;     // x=intensity, y=scroll_speed, z=scale, w=gust_influence
-    vec4 debug_params;    // x=speed, y=amplitude, z=orientation, w=edge_influence
+    vec4 debug_time;           // x=cloth_time, y=gust_strength, z=enabled, w=unused
+    vec4 debug_billow;         // x=amplitude, y=phase_offset, z=freq_multiplier, w=unused
+    vec4 debug_noise;          // x=intensity, y=scroll_speed, z=scale, w=gust_influence
+    vec4 debug_params;         // x=speed, y=amplitude, z=orientation, w=edge_influence
+    vec4 debug_noise_texture;  // x=influence (0-1), y=scroll_speed, z=scale, w=unused
 };
 
 in vec4 position;
@@ -19,6 +20,7 @@ out float var_enabled;
 out vec4 var_billow;
 out vec4 var_noise;
 out vec4 var_params;
+out vec4 var_noise_texture;
 
 void main()
 {
@@ -32,4 +34,5 @@ void main()
     var_billow = debug_billow;
     var_noise = debug_noise;
     var_params = debug_params;
+    var_noise_texture = debug_noise_texture;
 }
